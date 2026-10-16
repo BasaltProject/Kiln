@@ -17,3 +17,9 @@ and the chunk name, so a runtime error still points at `file.lua:line`.
 git submodule update --init
 cmake --preset release && cmake --build build/release
 ```
+
+## Targets
+
+`--target server` (the default) and `--target proxy` pick the product the plugin is for. Both produce the same
+Lua 5.5.1 bytecode today; the list lives in `src/Targets.hpp`, so a product that needs its own step adds a row there
+and a hook in `src/Main.cpp` without touching the compiler.
