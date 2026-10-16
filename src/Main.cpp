@@ -1,4 +1,5 @@
 #include "Compiler.hpp"
+#include "Plugin.hpp"
 #include "Targets.hpp"
 
 #include <algorithm>
@@ -17,7 +18,7 @@ namespace {
 
 constexpr std::string_view kUsage = "usage: kiln compile <file.lua|dir> [-o "
                                     "<out>] [--strip] [--target server|proxy]\n"
-                                    "       kiln check <file.lua|dir>\n";
+                                    "       kiln check <plugin|file.lua|dir> [--target server|proxy]\n";
 
 std::vector<fs::path> luaFilesIn(const fs::path& input) {
     std::vector<fs::path> files;
@@ -56,9 +57,12 @@ int main(int argc, char** argv) {
     basalt::kiln::Target target = *basalt::kiln::targetNamed("server");
     fs::path input{args[1]};
     std::optional<fs::path> output;
+    bool verify = true;
     for (std::size_t i = 2; i < args.size(); ++i) {
         if (args[i] == "--strip") {
             options.strip = true;
+        } else if (args[i] == "--no-verify") {
+            verify = false;
         } else if (args[i] == "--target" && i + 1 < args.size()) {
             const auto named = basalt::kiln::targetNamed(args[++i]);
             if (!named.has_value()) {
@@ -72,6 +76,25 @@ int main(int argc, char** argv) {
             std::cerr << kUsage;
             return 2;
         }
+    }
+    if (basalt::kiln::isPluginFolder(input)) {
+        if (verify) {
+            const std::vector<basalt::kiln::Diagnostic> problems = basalt::kiln::verifyPlugin(input, target.name);
+            for (const basalt::kiln::Diagnostic& problem : problems) {
+                std::cerr << problem.file << (problem.line > 0 ? ":" + std::to_string(problem.line) : "") << ": "
+                          << problem.message << '\n';
+            }
+            if (!problems.empty()) {
+                std::cerr << problems.size() << " problem(s)\n";
+                return 1;
+            }
+        }
+        if (check) {
+            std::cout << "ok\n";
+            return 0;
+        }
+        output = output.value_or(input / "build" / "luac");
+        input /= "src";
     }
     const bool directory = fs::is_directory(input);
     int failed = 0;

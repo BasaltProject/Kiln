@@ -30,7 +30,12 @@ endif()
 
 add_subdirectory(wire)
 
-add_library(kiln-core STATIC src/Compiler.cpp)
+file(READ api/server.api KILN_SERVER_API)
+file(READ api/proxy.api KILN_PROXY_API)
+configure_file(src/Manifests.cpp.in ${CMAKE_CURRENT_BINARY_DIR}/Manifests.cpp @ONLY)
+
+add_library(kiln-core STATIC src/Compiler.cpp src/Analyzer.cpp src/Manifest.cpp src/Plugin.cpp
+    ${CMAKE_CURRENT_BINARY_DIR}/Manifests.cpp)
 target_include_directories(kiln-core PUBLIC src)
 target_link_libraries(kiln-core PUBLIC basalt::lua basalt::warnings basalt::sanitizers basalt::parity)
 

@@ -1,0 +1,21 @@
+#include "Manifest.hpp"
+
+namespace basalt::kiln {
+namespace {
+
+constexpr std::string_view kServer = R"api(@KILN_SERVER_API@)api";
+constexpr std::string_view kProxy = R"api(@KILN_PROXY_API@)api";
+
+} // namespace
+
+Manifest manifestFor(std::string_view target) {
+    if (target == "server") {
+        return Manifest::parse(kServer);
+    }
+    if (target == "proxy") {
+        return Manifest::parse(kProxy);
+    }
+    return Manifest::parse("@permissive\n");
+}
+
+} // namespace basalt::kiln
