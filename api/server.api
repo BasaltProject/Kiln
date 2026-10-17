@@ -29,6 +29,7 @@ files.list function
 files.read function
 files.write function
 fill function
+form function
 getmetatable function
 ipairs function
 later function
