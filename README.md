@@ -52,6 +52,18 @@ kiln compile <plugin|file.lua|dir>    verify, then write the bytecode
 Given a folder with a `plugin.toml`, Kiln treats it as a plugin. Given a file or any other folder, it only checks
 syntax and compiles.
 
+## Building and signing
+
+```
+kiln keygen release                          writes release.key (secret) and release.pub
+kiln build <plugin> --sign release.key       verify, compile and sign into build/compiled
+```
+
+`build` leaves a plugin folder with the manifest, the resources and bytecode only, plus a `plugin.sig` holding an
+Ed25519 signature over the manifest and every `.luac`. The server refuses bytecode that carries no signature, a
+signature that does not match, or a key missing from `trusted-keys` under `[plugins]` in `config/server.toml`; the
+public key from `release.pub` goes there. `-o <dir>` picks the output and `--strip` drops debug information.
+
 ## What it checks
 
 ```
