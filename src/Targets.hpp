@@ -6,8 +6,7 @@
 
 namespace basalt::kiln {
 
-/// A product whose plugins Kiln compiles for; a new one is a new row here and,
-/// if it needs a step, a hook in Main.
+/// A product whose plugins Kiln compiles for; a new one is a new row here and, if it needs a step, a hook in Main.
 struct Target {
     std::string_view name;
     std::string_view extension;
