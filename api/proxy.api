@@ -1,7 +1,9 @@
-# Proxy plugins: the Lua standard library only for now. The proxy side lists its API below.
-@permissive
+# Proxy plugins: the Lua standard library and the API of the proxy.
 _VERSION string
 assert function
+broadcast function
+cmd function
+config table
 coroutine table
 coroutine.close function
 coroutine.create function
@@ -12,9 +14,15 @@ coroutine.status function
 coroutine.wrap function
 coroutine.yield function
 error function
+every function
 getmetatable function
 ipairs function
+later function
 load function
+log table
+log.error function
+log.info function
+log.warn function
 math table
 math.abs function
 math.acos function
@@ -46,6 +54,7 @@ math.tointeger function
 math.type function
 math.ult function
 next function
+on function
 os table
 os.clock function
 os.date function
@@ -53,14 +62,32 @@ os.difftime function
 os.time function
 pairs function
 pcall function
+players table
+players.by_name function
+players.by_uuid function
+players.count function
+players.online function
+plugin table
+plugin.id string
+plugin.name string
+plugin.version string
 print function
 rawequal function
 rawget function
 rawlen function
 rawset function
 require function
+run function
 select function
+servers table
+servers.exists function
+servers.list function
 setmetatable function
+store table
+store.delete function
+store.get function
+store.keys function
+store.set function
 string table
 string.byte function
 string.char function
@@ -79,6 +106,7 @@ string.reverse function
 string.sub function
 string.unpack function
 string.upper function
+t function
 table table
 table.concat function
 table.create function
@@ -98,4 +126,6 @@ utf8.codepoint function
 utf8.codes function
 utf8.len function
 utf8.offset function
+wait function
+watch function
 xpcall function
