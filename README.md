@@ -23,13 +23,14 @@
 
 ## Overview
 
-Kiln is part of the Basalt Project. It does two jobs for a plugin folder:
+Kiln is part of the Basalt Project, the command line for writing plugins. For a plugin folder it:
 
 - **Verifies it.** It reads `plugin.toml`, every Lua file under `src/`, each `require` and every name the code takes
   from the Basalt API, and reports what is wrong before the plugin ever reaches a server.
 - **Compiles it** to Lua bytecode (`.luac`) with the same Lua 5.5.1 the server runs, so the bytecode loads there as is.
 
-The output is the same bytes every time for the same sources.
+It also scaffolds a new plugin, packs it into a `.bspkg` and runs its tests. The output is the same bytes every time
+for the same sources.
 
 ## Building
 
@@ -45,6 +46,9 @@ cmake --preset release && cmake --build build/release
 ```
 kiln check <plugin|file.lua|dir>      verify, write nothing
 kiln compile <plugin|file.lua|dir>    verify, then write the bytecode
+kiln new <id> [name]                  create <id>/ with plugin.toml, src/main.lua and resources/config.toml
+kiln pack [plugin]                    verify, then pack build/<id>-<version>.bspkg
+kiln test [plugin]                    verify, then run plugin/tests/*.lua
 ```
 
 | Option | Meaning |
@@ -68,6 +72,35 @@ kiln build <plugin> --sign release.key       verify, compile and sign into build
 Ed25519 signature over the manifest and every `.luac`. The server refuses bytecode that carries no signature, a
 signature that does not match, or a key missing from `trusted-keys` under `[plugins]` in `config/server.toml`; the
 public key from `release.pub` goes there. `-o <dir>` picks the output and `--strip` drops debug information.
+
+## Packing
+
+`kiln pack` refuses a plugin with problems, then writes the manifest, the sources and the resources into
+`build/<id>-<version>.bspkg`, the same bytes every time for the same files. Two resources with the same file name in
+different folders are refused. With `--compiled` it packs the output of `kiln build` instead, so `--sign <key>` and
+`--strip` apply and the package carries bytecode and `plugin.sig`.
+
+## Testing
+
+Every `tests/*.lua` runs in the plugin sandbox against a mock server, and tests are not packed:
+
+```lua
+require("main")                       -- loads src/main.lua, which registers its handlers
+
+test("a player is welcomed", function()
+    local alice = mock.player("Alice")
+    mock.emit("player.join", { player = alice })
+    assert(alice.sent[1].args.name == "Alice")
+end)
+```
+
+- `require("name")` finds `src/name.lua`, as it does inside the server.
+- `on`, `watch` and `cmd` record what the plugin registers. `every` and `later` schedule on a mock clock that
+  `mock.tick(n)` advances.
+- `worlds.by_name(name)` gives a small world that keeps `set_block`/`block` and the entities `spawn` makes.
+- `mock.player(name, fields)` makes a stand-in player whose `send(text, args)` collects `sent`.
+- `mock.emit(event, data)` and `mock.command(name, source, ...)` call what the plugin registered.
+- A failed `assert` fails that test, and `kiln test` exits with 1 if any test fails.
 
 ## What it checks
 

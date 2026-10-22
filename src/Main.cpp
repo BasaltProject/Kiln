@@ -1,3 +1,4 @@
+#include "Commands.hpp"
 #include "Compiler.hpp"
 #include "Package.hpp"
 #include "Plugin.hpp"
@@ -22,7 +23,10 @@ constexpr std::string_view kUsage =
     "<out>] [--strip] [--target server|proxy]\n"
     "       kiln check <plugin|file.lua|dir> [--target server|proxy]\n"
     "       kiln build <plugin> [-o <dir>] [--strip] [--sign <key>] [--target server|proxy]\n"
-    "       kiln keygen <name>\n";
+    "       kiln keygen <name>\n"
+    "       kiln new <id> [name]\n"
+    "       kiln pack [plugin] [--compiled] [--sign <key>] [--strip] [--target server|proxy]\n"
+    "       kiln test [plugin] [--target server|proxy]\n";
 
 std::vector<fs::path> luaFilesIn(const fs::path& input) {
     std::vector<fs::path> files;
@@ -52,6 +56,17 @@ bool readFile(const fs::path& path, std::string& out) {
 
 int main(int argc, char** argv) {
     std::vector<std::string> args(argv + 1, argv + argc);
+    if (!args.empty()) {
+        if (args[0] == "new") {
+            return basalt::kiln::runNew(args);
+        }
+        if (args[0] == "pack") {
+            return basalt::kiln::runPack(args);
+        }
+        if (args[0] == "test") {
+            return basalt::kiln::runTest(args);
+        }
+    }
     if (args.size() == 2 && args[0] == "keygen") {
         const std::string failure = basalt::kiln::generateKey(args[1]);
         if (!failure.empty()) {

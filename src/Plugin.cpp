@@ -55,12 +55,6 @@ std::map<std::string, std::string> topLevelValues(const std::string& toml) {
     return values;
 }
 
-bool validId(const std::string& id) {
-    return !id.empty() && std::ranges::all_of(id, [](char c) {
-        return (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_' || c == '-';
-    });
-}
-
 std::string moduleFile(const std::string& module) {
     std::string path = module;
     std::ranges::replace(path, '.', '/');
@@ -68,6 +62,12 @@ std::string moduleFile(const std::string& module) {
 }
 
 } // namespace
+
+bool validPluginId(std::string_view id) {
+    return !id.empty() && std::ranges::all_of(id, [](char c) {
+        return (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_' || c == '-';
+    });
+}
 
 bool isPluginFolder(const fs::path& path) { return fs::is_regular_file(path / "plugin.toml"); }
 
@@ -80,7 +80,7 @@ std::vector<Diagnostic> verifyPlugin(const fs::path& root, std::string_view targ
             found.push_back({"plugin.toml", 0, std::string{"missing `"} + required + "`"});
         }
     }
-    if (values.contains("id") && !validId(values.at("id"))) {
+    if (values.contains("id") && !validPluginId(values.at("id"))) {
         found.push_back({"plugin.toml", 0, "`id` takes lowercase letters, digits, `_` and `-`"});
     }
     if (values.contains("main") && !fs::is_regular_file(root / values.at("main"))) {
