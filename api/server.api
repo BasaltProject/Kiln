@@ -105,6 +105,7 @@ rawequal function
 rawget function
 rawlen function
 rawset function
+request_chunk function
 require function
 run function
 select function
@@ -157,9 +158,17 @@ watch function
 worlds table
 worlds.all function
 worlds.biomes function
+worlds.block_hardness function
+worlds.block_info function
+worlds.block_properties function
+worlds.blocks function
 worlds.by_name function
 worlds.create function
 worlds.default function
+worlds.entity_types function
+worlds.items function
+worlds.state_flags function
 worlds.state_id function
 worlds.state_text function
+worlds.tags function
 xpcall function
