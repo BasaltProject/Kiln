@@ -5,6 +5,9 @@ assert function
 at function
 boss_bar function
 broadcast function
+channel table
+channel.on function
+channel.send function
 chat_format function
 cmd function
 config table
@@ -77,6 +80,11 @@ os.clock function
 os.date function
 os.difftime function
 os.time function
+packet table
+packet.on function
+packet.receive function
+packet.send function
+packet.watch function
 pairs function
 pcall function
 placeholder function
@@ -98,6 +106,7 @@ rawget function
 rawlen function
 rawset function
 require function
+run function
 select function
 service function
 setmetatable function
@@ -147,7 +156,10 @@ warn function
 watch function
 worlds table
 worlds.all function
+worlds.biomes function
 worlds.by_name function
 worlds.create function
 worlds.default function
+worlds.state_id function
+worlds.state_text function
 xpcall function
