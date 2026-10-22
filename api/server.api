@@ -171,6 +171,7 @@ worlds.entity_types function
 worlds.fix_name function
 worlds.fix_nbt function
 worlds.items function
+worlds.registry function
 worlds.state_flags function
 worlds.state_id function
 worlds.state_text function
