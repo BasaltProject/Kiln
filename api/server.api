@@ -169,6 +169,10 @@ server_links.list function
 server_links.set function
 service function
 setmetatable function
+settings table
+settings.get function
+settings.keys function
+settings.set function
 sidebar function
 store table
 string table
@@ -228,6 +232,7 @@ worlds.block_entity_types function
 worlds.block_hardness function
 worlds.block_info function
 worlds.block_properties function
+worlds.block_sounds function
 worlds.blocks function
 worlds.by_name function
 worlds.create function
@@ -236,10 +241,14 @@ worlds.default function
 worlds.entity_types function
 worlds.fix_name function
 worlds.fix_nbt function
+worlds.game_rules function
 worlds.items function
 worlds.registry function
 worlds.state_flags function
 worlds.state_id function
 worlds.state_text function
 worlds.tags function
+worlds.tool_facts function
+worlds.transform_state function
+worlds.unload function
 xpcall function
