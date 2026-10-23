@@ -6,6 +6,9 @@ access.is_banned function
 access.is_operator function
 access.is_whitelisted function
 access.known function
+access.last_death function
+access.set_statistic function
+access.statistic function
 advancements table
 advancements.grant function
 advancements.ids function
@@ -217,11 +220,13 @@ table.unpack function
 tick table
 tick.frozen function
 tick.pace function
+tick.paused function
 tick.rate function
 tick.set_rate function
 tick.sprint function
 tick.step function
 tick.stop_sprint function
+tick.times function
 tonumber function
 tostring function
 type function
@@ -241,6 +246,7 @@ worlds.biomes function
 worlds.block_entity_types function
 worlds.block_hardness function
 worlds.block_info function
+worlds.block_instrument function
 worlds.block_properties function
 worlds.block_sounds function
 worlds.blocks function
