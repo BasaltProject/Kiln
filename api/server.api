@@ -145,6 +145,7 @@ recipes.has function
 recipes.ids function
 recipes.remove function
 recipes.reset function
+recipes.reset_brewing function
 request_chunk function
 require function
 run function
