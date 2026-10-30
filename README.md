@@ -140,7 +140,8 @@ target, which is how a target starts before its API is written down.
 
 `api/server.api` is taken from the running server sandbox, including the tables a plugin only gets with a capability
 (`packet`, `channel`, `run`). The server keeps a copy of it for its own test, so a change here is made there too.
-`api/proxy.api` holds the Lua standard library and is permissive until the proxy lists its own names.
+`api/proxy.api` holds the Lua standard library and the names the proxy offers. Neither shipped target uses
+`@permissive` today.
 
 ### Adding a target
 
