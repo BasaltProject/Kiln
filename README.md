@@ -105,8 +105,8 @@ plugin.name string
 table with none is open. A file that starts a line with `@permissive` makes Kiln report no unknown names for that
 target, which is how a target starts before its API is written down.
 
-`api/server.api` is taken from the running server sandbox. `api/proxy.api` holds the Lua standard library and is
-permissive until the proxy lists its own names.
+`api/server.api` is taken from the running server sandbox. `api/proxy.api` holds the Lua standard library and the
+names the proxy offers. Neither shipped target uses `@permissive` today.
 
 ### Adding a target
 
