@@ -34,7 +34,7 @@ std::expected<fs::path, std::string> pack(const Project& project, const PackOpti
         }
         zip.add(file, *bytes);
     }
-    const fs::path output = project.root / "build" / project.packageName();
+    const fs::path output = project.root / "build" / project.packageName(options.packageExtension);
     fs::create_directories(output.parent_path());
     if (!wire::io::fileIO::writeBytes(output.string(), zip.finish())) {
         return std::unexpected("cannot write " + output.string());

@@ -64,9 +64,8 @@ std::string moduleFile(const std::string& module) {
 } // namespace
 
 bool validPluginId(std::string_view id) {
-    return !id.empty() && std::ranges::all_of(id, [](char c) {
-        return (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_' || c == '-';
-    });
+    return !id.empty() &&
+           std::ranges::all_of(id, [](char c) { return (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_'; });
 }
 
 bool isPluginFolder(const fs::path& path) { return fs::is_regular_file(path / "plugin.toml"); }
@@ -75,13 +74,13 @@ std::vector<Diagnostic> verifyPlugin(const fs::path& root, std::string_view targ
     std::vector<Diagnostic> found;
     const fs::path manifestPath = root / "plugin.toml";
     const std::map<std::string, std::string> values = topLevelValues(readAll(manifestPath));
-    for (const char* required : {"id", "name", "version", "main"}) {
+    for (const char* required : {"id", "name", "version", "api", "main"}) {
         if (!values.contains(required) || values.at(required).empty()) {
             found.push_back({"plugin.toml", 0, std::string{"missing `"} + required + "`"});
         }
     }
     if (values.contains("id") && !validPluginId(values.at("id"))) {
-        found.push_back({"plugin.toml", 0, "`id` takes lowercase letters, digits, `_` and `-`"});
+        found.push_back({"plugin.toml", 0, "`id` takes lowercase letters, digits and `_`"});
     }
     if (values.contains("main") && !fs::is_regular_file(root / values.at("main"))) {
         found.push_back({"plugin.toml", 0, "main file " + values.at("main") + " does not exist"});

@@ -29,7 +29,7 @@ Kiln is part of the Basalt Project, the command line for writing plugins. For a 
   from the Basalt API, and reports what is wrong before the plugin ever reaches a server.
 - **Compiles it** to Lua bytecode (`.luac`) with the same Lua 5.5.1 the server runs, so the bytecode loads there as is.
 
-It also scaffolds a new plugin, packs it into a `.bspkg` and runs its tests. The output is the same bytes every time
+It also scaffolds a new plugin, packs it into a `.bspkg` (`.bppkg` for the proxy) and runs its tests. The output is the same bytes every time
 for the same sources.
 
 ## Building

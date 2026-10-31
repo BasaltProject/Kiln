@@ -10,9 +10,12 @@ namespace basalt::kiln {
 struct Target {
     std::string_view name;
     std::string_view extension;
+    std::string_view package;
+    bool bytecode;
 };
 
-inline constexpr std::array<Target, 2> kTargets{{{"server", ".luac"}, {"proxy", ".luac"}}};
+inline constexpr std::array<Target, 2> kTargets{
+    {{"server", ".luac", ".bspkg", true}, {"proxy", ".luac", ".bppkg", false}}};
 
 [[nodiscard]] inline std::optional<Target> targetNamed(std::string_view name) {
     for (const Target& target : kTargets) {

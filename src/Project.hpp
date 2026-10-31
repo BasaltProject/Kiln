@@ -5,6 +5,7 @@
 #include <expected>
 #include <filesystem>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace basalt::kiln {
@@ -18,7 +19,9 @@ struct Project {
 
     [[nodiscard]] static std::expected<Project, std::string> open(const std::filesystem::path& root);
 
-    [[nodiscard]] std::string packageName() const { return manifest.id + "-" + manifest.version + ".bspkg"; }
+    [[nodiscard]] std::string packageName(std::string_view extension) const {
+        return manifest.id + "-" + manifest.version + std::string{extension};
+    }
 };
 
 } // namespace basalt::kiln

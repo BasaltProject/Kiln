@@ -10,14 +10,14 @@ namespace basalt::kiln {
 namespace {
 
 constexpr std::string_view kMain =
-    "on(\"player.join\", function(e)\n    e.player:send(\"<green>Welcome, <name>\", { name = e.player.name })\nend)\n";
+    "on(\"player.join\", function(e)\n    e.player:send(\"<green>Welcome, {name}\", { name = e.player.name })\nend)\n";
 constexpr std::string_view kConfig = "# Settings the operator can change; this file is copied next to the plugin.\n";
 
 } // namespace
 
 std::string scaffold(const fs::path& root, std::string_view id, std::string_view name) {
     if (!validPluginId(id) || id.front() < 'a' || id.front() > 'z') {
-        return "the id must be lower case letters, digits, '_' or '-', and start with a letter";
+        return "the id must be lower case letters, digits or '_', and start with a letter";
     }
     const fs::path folder = root / std::string{id};
     if (fs::exists(folder)) {

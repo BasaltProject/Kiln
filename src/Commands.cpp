@@ -56,6 +56,7 @@ std::optional<Parsed> parse(const std::vector<std::string>& args, bool packing) 
                 return std::nullopt;
             }
             parsed.target = named->name;
+            parsed.pack.packageExtension = named->package;
         } else if (packing && args[i] == "--compiled") {
             parsed.pack.compiled = true;
         } else if (packing && args[i] == "--strip") {
@@ -65,6 +66,11 @@ std::optional<Parsed> parse(const std::vector<std::string>& args, bool packing) 
         } else {
             return std::nullopt;
         }
+    }
+    if (parsed.target == "proxy" &&
+        (parsed.pack.compiled || parsed.pack.build.strip || !parsed.pack.build.signingKey.empty())) {
+        std::cerr << "the proxy loads Lua source, so --compiled, --strip and --sign do not apply to it\n";
+        return std::nullopt;
     }
     return parsed;
 }

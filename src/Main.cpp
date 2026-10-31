@@ -99,6 +99,10 @@ int main(int argc, char** argv) {
                 return 2;
             }
         }
+        if (!built.bytecode) {
+            std::cerr << "the " << built.name << " loads Lua source, so there is nothing to build\n";
+            return 2;
+        }
         const fs::path plugin{args[1]};
         if (!basalt::kiln::isPluginFolder(plugin)) {
             std::cerr << args[1] << " is not a plugin folder\n";
@@ -150,6 +154,10 @@ int main(int argc, char** argv) {
             std::cerr << kUsage;
             return 2;
         }
+    }
+    if (!check && !target.bytecode) {
+        std::cerr << "the " << target.name << " loads Lua source, so there is nothing to compile\n";
+        return 2;
     }
     if (basalt::kiln::isPluginFolder(input)) {
         if (verify) {
