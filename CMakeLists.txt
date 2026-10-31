@@ -6,6 +6,7 @@ project(basalt-kiln
     LANGUAGES C CXX
 )
 
+set(BASALT_VERSION "26.3.0-dev" CACHE STRING "Version stamped into the binary")
 option(BASALT_BUILD_TESTS "Build the test executables" ON)
 option(BASALT_WERROR "Treat warnings as errors" OFF)
 set(BASALT_SANITIZE "" CACHE STRING "Comma-separated sanitizers: address, undefined, thread")
@@ -40,5 +41,6 @@ add_library(kiln-core STATIC src/Compiler.cpp src/Analyzer.cpp src/Manifest.cpp 
 target_include_directories(kiln-core PUBLIC src)
 target_link_libraries(kiln-core PUBLIC basalt::lua basalt::wire-plugins basalt::warnings basalt::sanitizers basalt::parity)
 
-add_executable(kiln src/Main.cpp)
+add_executable(kiln src/Main.cpp src/BuildInfo.cpp)
+set_source_files_properties(src/BuildInfo.cpp PROPERTIES COMPILE_DEFINITIONS BASALT_VERSION="${BASALT_VERSION}")
 target_link_libraries(kiln PRIVATE kiln-core)

@@ -1,3 +1,4 @@
+#include "BuildInfo.hpp"
 #include "Commands.hpp"
 #include "Compiler.hpp"
 #include "Package.hpp"
@@ -26,7 +27,8 @@ constexpr std::string_view kUsage =
     "       kiln keygen <name>\n"
     "       kiln new <id> [name]\n"
     "       kiln pack [plugin] [--compiled] [--sign <key>] [--strip] [--target server|proxy]\n"
-    "       kiln test [plugin] [--target server|proxy]\n";
+    "       kiln test [plugin] [--target server|proxy]\n"
+    "       kiln --version\n";
 
 std::vector<fs::path> luaFilesIn(const fs::path& input) {
     std::vector<fs::path> files;
@@ -56,6 +58,10 @@ bool readFile(const fs::path& path, std::string& out) {
 
 int main(int argc, char** argv) {
     std::vector<std::string> args(argv + 1, argv + argc);
+    if (args.size() == 1 && (args[0] == "--version" || args[0] == "-V")) {
+        std::cout << "Kiln " << basalt::kiln::buildInfo::kVersion << '\n';
+        return 0;
+    }
     if (!args.empty()) {
         if (args[0] == "new") {
             return basalt::kiln::runNew(args);

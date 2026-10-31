@@ -32,9 +32,16 @@ Kiln is part of the Basalt Project, the command line for writing plugins. For a 
 It also scaffolds a new plugin, packs it into a `.bspkg` (`.bppkg` for the proxy) and runs its tests. The output is the same bytes every time
 for the same sources.
 
+## Download
+
+Every commit to `main` publishes a release, `<minecraft>.<n>` such as `26.3.4`, on the
+[releases page](https://github.com/BasaltProject/Kiln/releases). Each asset is the executable itself
+(`Kiln-<version>-<Platform>-<arch>`), with a `SHA256SUMS` file beside them. Make it executable and put it on your `PATH`
+as `kiln`; `kiln --version` prints what you have.
+
 ## Building
 
-Requires CMake 3.28 or newer, Ninja and Clang.
+To build it yourself, you need CMake 3.28 or newer, Ninja and Clang.
 
 ```bash
 git submodule update --init
