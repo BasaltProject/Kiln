@@ -125,8 +125,8 @@ std::vector<Diagnostic> verifyPlugin(const fs::path& root, std::string_view targ
             }
         }
         for (const Access& read : usage.fieldReads) {
-            const std::string root = read.path.substr(0, read.path.find('.'));
-            if (defined.contains(root)) {
+            const std::string head = read.path.substr(0, read.path.find('.'));
+            if (defined.contains(head)) {
                 continue;
             }
             const Resolution resolved = manifest.resolve(read.path);
