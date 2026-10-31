@@ -255,6 +255,7 @@ worlds.by_name function
 worlds.create function
 worlds.data_version function
 worlds.default function
+worlds.delete function
 worlds.entity_types function
 worlds.fix_name function
 worlds.fix_nbt function
