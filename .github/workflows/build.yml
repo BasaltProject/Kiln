@@ -17,6 +17,7 @@ concurrency:
 jobs:
   plan:
     runs-on: ubuntu-24.04
+    timeout-minutes: 90
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
@@ -52,6 +53,7 @@ jobs:
           - os: windows-2025
             target: Windows-x64
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
         with:
@@ -124,6 +126,7 @@ jobs:
 
   sanitize:
     runs-on: ubuntu-24.04
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
         with:
@@ -151,6 +154,7 @@ jobs:
 
   format:
     runs-on: ubuntu-24.04
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
 
@@ -164,6 +168,7 @@ jobs:
     if: ${{ github.event_name == 'push' }}
     needs: [plan, build, sanitize, format]
     runs-on: ubuntu-24.04
+    timeout-minutes: 90
     permissions:
       contents: write
     steps:
