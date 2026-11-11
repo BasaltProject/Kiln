@@ -57,7 +57,13 @@ data table
 data.json function
 data.save function
 datafix table
+datafix.current_version number
+datafix.legacy_state function
+datafix.missing function
+datafix.step function
+datafix.steps function
 datafix.supports function
+datafix.types function
 datafix.upgrade function
 datapacks table
 datapacks.function_tags function
@@ -76,9 +82,12 @@ every function
 enchantments table
 enchantments.level_value function
 files table
+files.capabilities function
 files.exists function
 files.list function
 files.read function
+files.stat function
+files.walk function
 files.write function
 fill function
 form function
@@ -91,6 +100,7 @@ log.error function
 log.info function
 log.warn function
 loot table
+loot.apply function
 loot.enchant function
 loot.number function
 loot.roll function
@@ -302,6 +312,7 @@ watch function
 worldgen table
 worldgen.column function
 worldgen.density function
+worldgen.density_tree function
 worldgen.height function
 worldgen.noise function
 worldgen.noise_create function
