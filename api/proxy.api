@@ -64,6 +64,11 @@ os.clock function
 os.date function
 os.difftime function
 os.time function
+packet table
+packet.on function
+packet.receive function
+packet.send function
+packet.watch function
 pairs function
 pcall function
 players table
