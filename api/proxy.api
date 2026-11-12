@@ -1,8 +1,10 @@
 # Proxy plugins: the Lua standard library and the API of the proxy.
 _VERSION string
 antibot table
+antibot.ban function
 antibot.is_verified function
 antibot.under_attack function
+antibot.unban function
 antibot.unverify function
 antibot.verify function
 assert function
