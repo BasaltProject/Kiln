@@ -2,6 +2,10 @@
 _VERSION string
 assert function
 broadcast function
+channels table
+channels.register function
+channels.send function
+channels.unregister function
 cmd function
 config table
 coroutine table
@@ -80,8 +84,10 @@ require function
 run function
 select function
 servers table
+servers.address function
 servers.exists function
 servers.list function
+servers.players function
 setmetatable function
 store table
 store.delete function
