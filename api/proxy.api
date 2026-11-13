@@ -101,6 +101,8 @@ servers.exists function
 servers.list function
 servers.ping function
 servers.players function
+servers.register function
+servers.unregister function
 setmetatable function
 store table
 string table
