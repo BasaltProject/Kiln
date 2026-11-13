@@ -99,6 +99,7 @@ servers table
 servers.address function
 servers.exists function
 servers.list function
+servers.ping function
 servers.players function
 setmetatable function
 store table
