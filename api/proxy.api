@@ -102,10 +102,6 @@ servers.list function
 servers.players function
 setmetatable function
 store table
-store.delete function
-store.get function
-store.keys function
-store.set function
 string table
 string.byte function
 string.char function
