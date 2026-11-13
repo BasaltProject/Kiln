@@ -156,6 +156,11 @@ packet.send function
 packet.watch function
 pairs function
 pcall function
+permissions table
+permissions.changed function
+permissions.check function
+permissions.meta function
+permissions.provide function
 placeholder function
 physics table
 physics.clip function
