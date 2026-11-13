@@ -27,6 +27,7 @@ coroutine.yield function
 error function
 every function
 getmetatable function
+has_permission function
 ipairs function
 later function
 load function
@@ -78,6 +79,11 @@ packet.send function
 packet.watch function
 pairs function
 pcall function
+permissions table
+permissions.changed function
+permissions.check function
+permissions.meta function
+permissions.provide function
 players table
 players.by_name function
 players.by_uuid function
