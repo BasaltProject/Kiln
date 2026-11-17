@@ -186,6 +186,8 @@ plugin.name string
 plugin.version string
 pos function
 print function
+profiles table
+profiles.lookup function
 rawequal function
 rawget function
 rawlen function
