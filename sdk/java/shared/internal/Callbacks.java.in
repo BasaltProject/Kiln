@@ -1,0 +1,48 @@
+package org.basaltmc.shared.internal;
+
+import java.util.ArrayList;
+import java.util.List;
+import org.basaltmc.shared.core.Handler;
+import org.basaltmc.shared.core.Level;
+import org.basaltmc.shared.log.Log;
+import org.teavm.interop.Function;
+import org.teavm.interop.Import;
+
+/** The token table behind basalt_callback. Not part of the plugin API. */
+public final class Callbacks {
+    private Callbacks() {}
+
+    private static abstract class Entry extends Function {
+        abstract void call(int token, int ctx);
+    }
+
+    @Import(name = "basalt_register_callback")
+    private static native void registerCallback(Entry entry);
+
+    private static final List<Handler> handlers = new ArrayList<>();
+
+    public static int tokenFor(Handler handler) {
+        handlers.add(handler);
+        return handlers.size();
+    }
+
+    /** The token of an optional handler, `none` when it is null. */
+    public static int tokenOr(Handler handler, int none) {
+        return handler == null ? none : tokenFor(handler);
+    }
+
+    private static void dispatch(int token, int ctx) {
+        if (token > 0 && token <= handlers.size()) {
+            try {
+                handlers.get(token - 1).run(ctx);
+            } catch (Throwable error) {
+                Log.log(Level.ERROR, "unhandled " + error);
+            }
+        }
+    }
+
+    /** Called by the generated entry point once the plugin's own init has run. */
+    public static void install() {
+        registerCallback(Function.get(Entry.class, Callbacks.class, "dispatch"));
+    }
+}

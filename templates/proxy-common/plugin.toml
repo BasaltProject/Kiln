@@ -1,0 +1,12 @@
+id = "@ID@"
+name = "@NAME@"
+version = "0.1.0"
+authors = []
+api = 1
+abi = 1
+lang = "@LANG@"
+target = "proxy"
+main = "plugin.wasm"
+
+[capabilities]
+players_data = true

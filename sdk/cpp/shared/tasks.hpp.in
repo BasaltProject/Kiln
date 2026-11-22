@@ -1,0 +1,14 @@
+#include <basalt/shared.h>
+#pragma once
+#include <basalt/shared/core.hpp>
+#include <basalt/shared/tasks.h>
+
+namespace basalt::shared::tasks {
+using namespace basalt::shared::core;
+
+inline int after(int delay, Handler handler) { return bs_after(delay, handler); }
+
+inline int every(int delay, int period, Handler handler) { return bs_every(delay, period, handler); }
+
+inline int task_cancel(int task) { return bs_task_cancel(task); }
+} // namespace basalt::shared::tasks

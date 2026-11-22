@@ -1,0 +1,16 @@
+@file:OptIn(kotlin.wasm.unsafe.UnsafeWasmMemoryApi::class)
+
+package org.basaltmc.shared.text
+import org.basaltmc.shared.core.*
+import org.basaltmc.shared.internal.*
+import org.basaltmc.shared.values.*
+
+
+import org.basaltmc.shared.core.Args
+import org.basaltmc.shared.internal.*
+
+fun translate(key: String, args: Args? = null): String? = fetch { out, cap ->
+    val k = str(key)
+    val a = args(args)
+    rawTranslate(k.ptr, k.len, a.ptr, a.len, out, cap)
+}

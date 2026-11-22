@@ -1,0 +1,6 @@
+blocked-word = "badword"
+lobby-server = "nowhere"
+banned-words = ["badword", "worse"]
+
+[messages]
+denied = "<red>Watch your language"

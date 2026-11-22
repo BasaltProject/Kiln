@@ -1,0 +1,19 @@
+using System;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using System.Text;
+using Basalt.Shared.Core;
+using Basalt.Shared.Internal;
+using Basalt.Shared.Values;
+using static Basalt.Shared.Internal.Native;
+using static Basalt.Shared.Core.Level;
+using static Basalt.Shared.Core.Priority;
+namespace Basalt.Shared.Tasks;
+
+public static unsafe partial class Tasks {
+    public static int After(int delay, Handler handler) => RawTaskAfter(delay, TokenFor(handler));
+
+    public static int Every(int delay, int period, Handler handler) => RawTaskEvery(delay, period, TokenFor(handler));
+
+    public static int TaskCancel(int task) => RawTaskCancel(task);
+}

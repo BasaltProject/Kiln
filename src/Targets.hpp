@@ -6,16 +6,13 @@
 
 namespace basalt::kiln {
 
-/// A product whose plugins Kiln compiles for; a new one is a new row here and, if it needs a step, a hook in Main.
+/// A product whose plugins Kiln packs for; a new one is a new row here.
 struct Target {
     std::string_view name;
-    std::string_view extension;
     std::string_view package;
-    bool bytecode;
 };
 
-inline constexpr std::array<Target, 2> kTargets{
-    {{"server", ".luac", ".bspkg", true}, {"proxy", ".luac", ".bppkg", false}}};
+inline constexpr std::array<Target, 2> kTargets{{{"server", ".bspkg"}, {"proxy", ".bppkg"}}};
 
 [[nodiscard]] inline std::optional<Target> targetNamed(std::string_view name) {
     for (const Target& target : kTargets) {

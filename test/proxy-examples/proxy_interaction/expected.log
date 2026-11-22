@@ -1,0 +1,28 @@
+interaction ready
+count ok
+count lobby ok
+count nowhere ok
+address ok
+by uuid ok
+by uuid none ok
+dialog ok
+bad kind invalid
+pack pushed:
+23696888-49b4-327a-bef4-87910757b1aa
+bad hash invalid
+cookie stored
+cookie requested
+float stored
+float read ok
+float default ok
+broadcast ok
+bad host invalid
+settings locale:
+en_us
+cookie received:
+abcd
+pack status:
+declined
+dialog clicked
+cleanup ok
+transfer sent

@@ -1,0 +1,8 @@
+# Settings the operator can change; read them with the config calls of the SDK.
+welcome-bonus = 50
+
+# Ticks between announcements (20 ticks = 1 second).
+announce-period = 1200
+
+[shop]
+sparkles-price = 100

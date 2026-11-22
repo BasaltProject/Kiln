@@ -1,0 +1,15 @@
+#pragma once
+#include <basalt/proxy/admin.hpp>
+#include <basalt/proxy/commands.hpp>
+#include <basalt/proxy/config.hpp>
+#include <basalt/proxy/core.hpp>
+#include <basalt/proxy/data.hpp>
+#include <basalt/proxy/events.hpp>
+#include <basalt/proxy/hud.hpp>
+#include <basalt/proxy/interaction.hpp>
+#include <basalt/proxy/log.hpp>
+#include <basalt/proxy/network.hpp>
+#include <basalt/proxy/players.hpp>
+#include <basalt/proxy/tasks.hpp>
+#include <basalt/proxy/text.hpp>
+#include <basalt/proxy/values.hpp>

@@ -1,0 +1,102 @@
+@file:OptIn(kotlin.wasm.ExperimentalWasmInterop::class)
+
+// Raw imports of the core plugin ABI (basalt_abi.h) shared by server and proxy plugins.
+package org.basaltmc.proxy.internal
+
+import kotlin.wasm.WasmImport
+
+@WasmImport("basalt", "log")
+internal external fun rawLog(level: Int, msg: Int, len: Int)
+
+@WasmImport("basalt", "config_i64")
+internal external fun rawConfigI64(key: Int, klen: Int, def: Long): Long
+
+@WasmImport("basalt", "config_f64")
+internal external fun rawConfigF64(key: Int, klen: Int, def: Double): Double
+
+@WasmImport("basalt", "config_bool")
+internal external fun rawConfigBool(key: Int, klen: Int, def: Int): Int
+
+@WasmImport("basalt", "config_str")
+internal external fun rawConfigStr(key: Int, klen: Int, out: Int, cap: Int): Int
+
+@WasmImport("basalt", "translate")
+internal external fun rawTranslate(key: Int, klen: Int, args: Int, alen: Int, out: Int, cap: Int): Int
+
+@WasmImport("basalt", "player_by_name")
+internal external fun rawPlayerByName(name: Int, len: Int): Int
+
+@WasmImport("basalt", "players_online")
+internal external fun rawPlayersOnline(out: Int, cap: Int): Int
+
+@WasmImport("basalt", "player_name")
+internal external fun rawPlayerName(player: Int, out: Int, cap: Int): Int
+
+@WasmImport("basalt", "player_send")
+internal external fun rawPlayerSend(player: Int, text: Int, tlen: Int, args: Int, alen: Int): Int
+
+@WasmImport("basalt", "player_action_bar")
+internal external fun rawPlayerActionBar(player: Int, text: Int, tlen: Int, args: Int, alen: Int): Int
+
+@WasmImport("basalt", "data_get_i64")
+internal external fun rawDataGetI64(player: Int, key: Int, klen: Int, def: Long): Long
+
+@WasmImport("basalt", "data_set_i64")
+internal external fun rawDataSetI64(player: Int, key: Int, klen: Int, value: Long): Int
+
+@WasmImport("basalt", "data_get_bool")
+internal external fun rawDataGetBool(player: Int, key: Int, klen: Int, def: Int): Int
+
+@WasmImport("basalt", "data_set_bool")
+internal external fun rawDataSetBool(player: Int, key: Int, klen: Int, value: Int): Int
+
+@WasmImport("basalt", "data_get_str")
+internal external fun rawDataGetStr(player: Int, key: Int, klen: Int, out: Int, cap: Int): Int
+
+@WasmImport("basalt", "data_set_str")
+internal external fun rawDataSetStr(player: Int, key: Int, klen: Int, value: Int, vlen: Int): Int
+
+@WasmImport("basalt", "data_remove")
+internal external fun rawDataRemove(player: Int, key: Int, klen: Int): Int
+
+@WasmImport("basalt", "event_on")
+internal external fun rawEventOn(name: Int, nlen: Int, priority: Int, token: Int): Int
+
+@WasmImport("basalt", "event_player")
+internal external fun rawEventPlayer(ctx: Int): Int
+
+@WasmImport("basalt", "event_field_str")
+internal external fun rawEventFieldStr(ctx: Int, field: Int, flen: Int, out: Int, cap: Int): Int
+
+@WasmImport("basalt", "event_field_i64")
+internal external fun rawEventFieldI64(ctx: Int, field: Int, flen: Int, out: Int): Int
+
+@WasmImport("basalt", "event_cancel")
+internal external fun rawEventCancel(ctx: Int, cancelled: Int): Int
+
+@WasmImport("basalt", "command_register")
+internal external fun rawCommandRegister(spec: Int, slen: Int, permission: Int, plen: Int, token: Int): Int
+
+@WasmImport("basalt", "command_source_name")
+internal external fun rawCommandSourceName(ctx: Int, out: Int, cap: Int): Int
+
+@WasmImport("basalt", "command_is_console")
+internal external fun rawCommandIsConsole(ctx: Int): Int
+
+@WasmImport("basalt", "command_reply")
+internal external fun rawCommandReply(ctx: Int, text: Int, tlen: Int, args: Int, alen: Int): Int
+
+@WasmImport("basalt", "command_arg_str")
+internal external fun rawCommandArgStr(ctx: Int, name: Int, nlen: Int, out: Int, cap: Int): Int
+
+@WasmImport("basalt", "command_arg_i64")
+internal external fun rawCommandArgI64(ctx: Int, name: Int, nlen: Int, out: Int): Int
+
+@WasmImport("basalt", "task_after")
+internal external fun rawTaskAfter(delay: Int, token: Int): Int
+
+@WasmImport("basalt", "task_every")
+internal external fun rawTaskEvery(delay: Int, period: Int, token: Int): Int
+
+@WasmImport("basalt", "task_cancel")
+internal external fun rawTaskCancel(task: Int): Int

@@ -1,0 +1,6 @@
+Real run (no trace tool on the proxy): Proxy + Paper 26.3 backend (offline mode) + one Swarm bot.
+1. Install the built plugin into <proxy>/plugins/netdemo (plugin.toml, plugin.wasm, resources/).
+2. Start the proxy with antibot enabled in config/antibot.toml and one backend in config/servers.toml.
+3. Run: BasaltSwarm --ip 127.0.0.1:<proxy port> --count 1 --run nosuchcmd --send 22:0b626173616c743a64656d6f6869 --leave-after 5000
+   (packet 22 is serverbound.play.custom_payload on channel basalt:demo with the bytes "hi").
+4. Compare the "Plugin netdemo" lines of the proxy log with expected.txt (log prefixes and timestamps stripped).

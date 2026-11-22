@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -13,10 +14,15 @@ struct Diagnostic {
     std::string message;
 };
 
-/// Walks a plugin folder: its manifest, every Lua source, each `require` and every name it takes from the API.
-[[nodiscard]] std::vector<Diagnostic> verifyPlugin(const std::filesystem::path& root, std::string_view target);
+/// Checks `plugin.toml` and, when the plugin is built, the module it names against the plugin ABI.
+/// `target` overrides the manifest's `target` field (`server` by default).
+[[nodiscard]] std::vector<Diagnostic> verifyPlugin(const std::filesystem::path& root,
+                                                   std::optional<std::string_view> target = std::nullopt);
 
-/// Lower case letters, digits, `_` and `-`.
+/// The `target` field of the plugin's manifest, `server` when it has none or cannot be read.
+[[nodiscard]] std::string manifestTarget(const std::filesystem::path& root);
+
+/// Lower case letters, digits and `_`, starting with a letter.
 [[nodiscard]] bool validPluginId(std::string_view id);
 
 [[nodiscard]] bool isPluginFolder(const std::filesystem::path& path);

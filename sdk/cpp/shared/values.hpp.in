@@ -1,0 +1,250 @@
+#include <basalt/shared.h>
+#include <basalt/shared/core.hpp>
+#include <basalt/shared/values.h>
+// Value builder and reader over the byte format of basalt_values.h, on top of wrappers/values.h. No heap, no
+// exceptions.
+#pragma once
+
+namespace basalt::shared::values {
+using namespace basalt::shared::core;
+
+enum class Kind : int {
+    kAbsent = -1,
+    kNull = 0,
+    kBool = 0x10,
+    kInt = 3,
+    kFloat = 4,
+    kString = 5,
+    kBytes = 6,
+    kList = 7,
+    kMap = 8
+};
+
+/// Writes one document into a buffer you provide; a failure sets `ok()` false instead of overflowing.
+class ValueWriter {
+public:
+    ValueWriter(void* buffer, int capacity) { bs_vw_init(&raw_, buffer, capacity); }
+
+    bool ok() const { return bs_vw_ok(&raw_) != 0; }
+
+    bool overflowed() const { return raw_.error == BS_VW_OVERFLOW; }
+
+    ValueWriter& null() {
+        bs_vw_null(&raw_);
+        return *this;
+    }
+
+    ValueWriter& boolean(bool value) {
+        bs_vw_bool(&raw_, value);
+        return *this;
+    }
+
+    ValueWriter& integer(long long value) {
+        bs_vw_i64(&raw_, value);
+        return *this;
+    }
+
+    ValueWriter& number(double value) {
+        bs_vw_f64(&raw_, value);
+        return *this;
+    }
+
+    ValueWriter& string(const char* text) {
+        bs_vw_str(&raw_, text);
+        return *this;
+    }
+
+    ValueWriter& string(const char* text, int length) {
+        bs_vw_str_n(&raw_, text, length);
+        return *this;
+    }
+
+    ValueWriter& bytes(const void* data, int length) {
+        bs_vw_bytes(&raw_, data, length);
+        return *this;
+    }
+
+    ValueWriter& list() {
+        bs_vw_list(&raw_);
+        return *this;
+    }
+
+    ValueWriter& map() {
+        bs_vw_map(&raw_);
+        return *this;
+    }
+
+    ValueWriter& end() {
+        bs_vw_end(&raw_);
+        return *this;
+    }
+
+    ValueWriter& key(const char* name) {
+        bs_vw_key(&raw_, name);
+        return *this;
+    }
+
+    /// The document length, or a negative error when the writer failed or a container is still open.
+    int finish() const { return bs_vw_finish(&raw_); }
+
+    const char* data() const { return reinterpret_cast<const char*>(raw_.data); }
+
+private:
+    bs_vw raw_;
+};
+
+/// A writer that owns N bytes of inline storage.
+template <int N>
+class ValueBuffer : public ValueWriter {
+public:
+    ValueBuffer() : ValueWriter(storage_, N) {}
+
+private:
+    unsigned char storage_[N];
+};
+
+class Value;
+
+/// Iterates the items of a list or the entries of a map.
+class ValueIter {
+public:
+    inline bool next(Value& item);
+    inline bool next(const char*& key, int& key_length, Value& item);
+
+private:
+    friend class Value;
+    bs_iter raw_;
+};
+
+/// A position in a validated document; the absent value answers every getter with false.
+class Value {
+public:
+    Value() : raw_(bs_value_none()) {}
+
+    explicit Value(bs_val raw) : raw_(raw) {}
+
+    /// Validates `length` bytes; false (and an absent value) when malformed.
+    bool open(const void* data, int length) { return bs_value_open(&raw_, data, length) == 0; }
+
+    bool present() const { return bs_value_present(raw_) != 0; }
+
+    Kind kind() const { return static_cast<Kind>(bs_value_kind(raw_)); }
+
+    bool is_null() const { return bs_value_is_null(raw_) != 0; }
+
+    bool as_bool(bool& out) const {
+        int value = 0;
+        if (!bs_value_as_bool(raw_, &value)) {
+            return false;
+        }
+        out = value != 0;
+        return true;
+    }
+
+    bool as_i64(long long& out) const {
+        int64_t value = 0;
+        if (!bs_value_as_i64(raw_, &value)) {
+            return false;
+        }
+        out = value;
+        return true;
+    }
+
+    bool as_f64(double& out) const { return bs_value_as_f64(raw_, &out) != 0; }
+
+    /// The UTF-8 payload of a string (not NUL-terminated).
+    bool as_str(const char*& data, int& length) const {
+        int32_t n = 0;
+        if (!bs_value_as_str(raw_, &data, &n)) {
+            return false;
+        }
+        length = n;
+        return true;
+    }
+
+    bool as_bytes(const unsigned char*& data, int& length) const {
+        int32_t n = 0;
+        if (!bs_value_as_bytes(raw_, &data, &n)) {
+            return false;
+        }
+        length = n;
+        return true;
+    }
+
+    bool bool_or(bool fallback) const {
+        as_bool(fallback);
+        return fallback;
+    }
+
+    long long i64_or(long long fallback) const {
+        as_i64(fallback);
+        return fallback;
+    }
+
+    double f64_or(double fallback) const {
+        as_f64(fallback);
+        return fallback;
+    }
+
+    /// Items of a list or entries of a map, -1 for any other value.
+    int count() const { return bs_value_count(raw_); }
+
+    Value at(int index) const { return Value{bs_value_at(raw_, index)}; }
+
+    Value find(const char* key) const { return Value{bs_value_find(raw_, key)}; }
+
+    Value find(const char* key, int length) const { return Value{bs_value_find_n(raw_, key, length)}; }
+
+    ValueIter iter() const {
+        ValueIter it;
+        bs_value_iter(raw_, &it.raw_);
+        return it;
+    }
+
+private:
+    bs_val raw_;
+};
+
+inline bool ValueIter::next(Value& item) {
+    bs_val v;
+    if (!bs_iter_next(&raw_, nullptr, nullptr, &v)) {
+        return false;
+    }
+    item = Value{v};
+    return true;
+}
+
+inline bool ValueIter::next(const char*& key, int& key_length, Value& item) {
+    bs_val v;
+    int32_t n = 0;
+    if (!bs_iter_next(&raw_, &key, &n, &v)) {
+        return false;
+    }
+    key_length = n;
+    item = Value{v};
+    return true;
+}
+
+namespace detail {
+template <typename Call>
+int32_t trampoline(void* user, char* out, int32_t cap) {
+    return (*static_cast<Call*>(user))(out, cap);
+}
+} // namespace detail
+
+/// Calls `call(out, cap)` and, when the answer needs more room, once more with `spare`; `result` points at the answer.
+template <typename Call>
+int call_out(Call call, char* buffer, int capacity, char* spare, int spare_capacity, char*& result) {
+    return bs_out_call(detail::trampoline<Call>, &call, buffer, capacity, spare, spare_capacity, &result);
+}
+
+/// The same, then validates the answer as a document: 0 and `root` set, or a negative error.
+template <typename Call>
+int call_value(Call call, char* buffer, int capacity, char* spare, int spare_capacity, Value& root) {
+    bs_val raw;
+    const int rc = bs_out_value(detail::trampoline<Call>, &call, buffer, capacity, spare, spare_capacity, &raw);
+    root = Value{raw};
+    return rc;
+}
+
+} // namespace basalt::shared::values
