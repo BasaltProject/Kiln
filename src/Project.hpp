@@ -10,12 +10,17 @@
 
 namespace basalt::kiln {
 
-/// A plugin folder with a valid manifest and the files that go into its package.
+struct ProjectFile {
+    /// Name inside the package, with forward slashes.
+    std::string name;
+    std::filesystem::path source;
+};
+
+/// A plugin folder with a valid manifest and a built module, with the files that go into its package.
 struct Project {
     std::filesystem::path root;
     wire::plugins::PluginManifest manifest;
-    /// Paths relative to `root` with forward slashes, in the order they are packed.
-    std::vector<std::string> files;
+    std::vector<ProjectFile> files;
 
     [[nodiscard]] static std::expected<Project, std::string> open(const std::filesystem::path& root);
 

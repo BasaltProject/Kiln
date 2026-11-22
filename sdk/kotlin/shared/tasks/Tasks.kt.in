@@ -1,0 +1,12 @@
+package org.basaltmc.shared.tasks
+import org.basaltmc.shared.core.*
+import org.basaltmc.shared.internal.*
+import org.basaltmc.shared.values.*
+
+
+import org.basaltmc.shared.core.Handler
+import org.basaltmc.shared.internal.*
+
+fun after(delay: Int, handler: Handler): Int = rawTaskAfter(delay, tokenFor(handler))
+fun every(delay: Int, period: Int, handler: Handler): Int = rawTaskEvery(delay, period, tokenFor(handler))
+fun taskCancel(task: Int): Int = rawTaskCancel(task)

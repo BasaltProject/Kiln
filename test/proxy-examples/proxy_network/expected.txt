@@ -1,0 +1,31 @@
+net: packets known
+net: resolved a clientbound play packet
+net: unknown packet refused
+net: channel registered
+net: bungee channel refused
+net: temp channel unregistered
+net: decider listening
+net: listener removed
+net: bad listener name refused
+net: bad context refused
+net: verified yes
+net: unverified
+net: ban ok
+net: unban ok
+net: unban absent
+net: bad address refused
+net: no attack
+net: antibot banned deny
+net: sent welcome
+net: wrong direction refused
+net: sent hello message
+net: injected custom payload
+net: injected command
+net: rewrite for Bot_1
+net: observer cancel refused
+net: cancel for Bot_1
+net: watch saw a cancelled packet
+net: message client basalt:demo hi
+net: reply sent
+net: cancel for Bot_1
+net: watch saw a cancelled packet

@@ -1,0 +1,2 @@
+namespace Basalt.Shared.Core;
+public delegate void Handler(int ctx);

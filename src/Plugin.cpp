@@ -1,151 +1,101 @@
 #include "Plugin.hpp"
 
-#include "Analyzer.hpp"
-#include "Manifest.hpp"
+#include "AbiTable.hpp"
+#include "Languages.hpp"
+#include "Targets.hpp"
+#include "WasmCheck.hpp"
+
+#include <basalt/wire/common/toml/Toml.hpp>
+#include <basalt/wire/io/FileIO.hpp>
+#include <basalt/wire/plugins/PluginManifest.hpp>
 
 #include <algorithm>
-#include <fstream>
-#include <iterator>
-#include <map>
-#include <set>
 
 namespace fs = std::filesystem;
 
 namespace basalt::kiln {
-namespace {
-
-std::string readAll(const fs::path& path) {
-    std::ifstream in{path, std::ios::binary};
-    return std::string{std::istreambuf_iterator<char>{in}, std::istreambuf_iterator<char>{}};
-}
-
-std::string trimmed(std::string text) {
-    const auto blank = [](unsigned char c) { return c == ' ' || c == '\t' || c == '\r'; };
-    while (!text.empty() && blank(static_cast<unsigned char>(text.back()))) {
-        text.pop_back();
-    }
-    std::size_t start = 0;
-    while (start < text.size() && blank(static_cast<unsigned char>(text[start]))) {
-        ++start;
-    }
-    return text.substr(start);
-}
-
-std::map<std::string, std::string> topLevelValues(const std::string& toml) {
-    std::map<std::string, std::string> values;
-    std::size_t start = 0;
-    while (start < toml.size()) {
-        std::size_t end = toml.find('\n', start);
-        end = end == std::string::npos ? toml.size() : end;
-        const std::string line = trimmed(toml.substr(start, end - start));
-        start = end + 1;
-        if (line.starts_with("[")) {
-            break;
-        }
-        const std::size_t equals = line.find('=');
-        if (line.empty() || line[0] == '#' || equals == std::string::npos) {
-            continue;
-        }
-        std::string value = trimmed(line.substr(equals + 1));
-        if (value.size() >= 2 && value.front() == '"') {
-            value = value.substr(1, value.find('"', 1) - 1);
-        }
-        values[trimmed(line.substr(0, equals))] = value;
-    }
-    return values;
-}
-
-std::string moduleFile(const std::string& module) {
-    std::string path = module;
-    std::ranges::replace(path, '.', '/');
-    return path;
-}
-
-} // namespace
 
 bool validPluginId(std::string_view id) {
-    return !id.empty() &&
+    return !id.empty() && id.front() >= 'a' && id.front() <= 'z' &&
            std::ranges::all_of(id, [](char c) { return (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_'; });
 }
 
 bool isPluginFolder(const fs::path& path) { return fs::is_regular_file(path / "plugin.toml"); }
 
-std::vector<Diagnostic> verifyPlugin(const fs::path& root, std::string_view target) {
+std::string manifestTarget(const fs::path& root) {
+    const std::optional<std::string> text = wire::io::fileIO::readText((root / "plugin.toml").string());
+    if (text.has_value()) {
+        if (const auto table = wire::common::toml::parse(*text); table.has_value()) {
+            if (const auto target = table->string("target"); target.has_value()) {
+                return std::string{*target};
+            }
+        }
+    }
+    return "server";
+}
+
+std::vector<Diagnostic> verifyPlugin(const fs::path& root, std::optional<std::string_view> targetOverride) {
     std::vector<Diagnostic> found;
-    const fs::path manifestPath = root / "plugin.toml";
-    const std::map<std::string, std::string> values = topLevelValues(readAll(manifestPath));
-    for (const char* required : {"id", "name", "version", "api", "main"}) {
-        if (!values.contains(required) || values.at(required).empty()) {
-            found.push_back({"plugin.toml", 0, std::string{"missing `"} + required + "`"});
-        }
+    const auto problem = [&](std::string message) { found.push_back({"plugin.toml", 0, std::move(message)}); };
+    const std::optional<std::string> text = wire::io::fileIO::readText((root / "plugin.toml").string());
+    if (!text.has_value()) {
+        problem("cannot read plugin.toml");
+        return found;
     }
-    if (values.contains("id") && !validPluginId(values.at("id"))) {
-        found.push_back({"plugin.toml", 0, "`id` takes lowercase letters, digits and `_`"});
+    const auto table = wire::common::toml::parse(*text);
+    if (!table.has_value()) {
+        const std::size_t line = wire::common::toml::tomlErrorLine(*text);
+        found.push_back(
+            {"plugin.toml", static_cast<int>(line), std::string{wire::common::toml::tomlErrorMessage(table.error())}});
+        return found;
     }
-    if (values.contains("main") && !fs::is_regular_file(root / values.at("main"))) {
-        found.push_back({"plugin.toml", 0, "main file " + values.at("main") + " does not exist"});
+    const std::optional<std::string_view> id = table->string("id");
+    if (!id.has_value()) {
+        problem("missing `id`");
+    } else if (!validPluginId(*id)) {
+        problem("`id` takes lowercase letters, digits and `_`, and starts with a letter");
     }
-
-    const fs::path sources = root / "src";
-    std::vector<fs::path> files;
-    if (fs::is_directory(sources)) {
-        for (const fs::directory_entry& entry : fs::recursive_directory_iterator(sources)) {
-            if (entry.is_regular_file() && entry.path().extension() == ".lua") {
-                files.push_back(entry.path());
-            }
-        }
+    if (!table->string("version").has_value()) {
+        problem("missing `version`");
     }
-    std::ranges::sort(files);
-
-    std::set<std::string> modules;
-    for (const fs::path& file : files) {
-        fs::path relative = fs::relative(file, sources);
-        relative.replace_extension();
-        modules.insert(relative.generic_string());
+    const std::optional<std::int64_t> api = table->integer("api");
+    if (!api.has_value()) {
+        problem("missing `api`");
+    } else if (*api != wire::plugins::PluginManifest::kApi) {
+        problem("`api` is " + std::to_string(*api) + " but this Kiln builds API " +
+                std::to_string(wire::plugins::PluginManifest::kApi));
     }
-
-    const Manifest manifest = manifestFor(target);
-    std::map<std::string, Usage> usages;
-    std::set<std::string> defined;
-    for (const fs::path& file : files) {
-        const std::string name = fs::relative(file, root).generic_string();
-        std::expected<Usage, std::string> usage = analyze(readAll(file), name);
-        if (!usage.has_value()) {
-            found.push_back({name, 0, usage.error()});
-            continue;
-        }
-        defined.insert(usage->globalWrites.begin(), usage->globalWrites.end());
-        usages.emplace(name, std::move(*usage));
+    const std::optional<std::int64_t> abiVersion = table->integer("abi");
+    if (!abiVersion.has_value()) {
+        problem("missing `abi` (this Kiln builds ABI " + std::to_string(abi::kVersion) + ")");
+    } else if (*abiVersion != abi::kVersion) {
+        problem("`abi` is " + std::to_string(*abiVersion) + " but this Kiln builds ABI " +
+                std::to_string(abi::kVersion));
     }
-
-    for (const auto& [name, usage] : usages) {
-        for (const Access& read : usage.globalReads) {
-            if (!manifest.permissive() && !manifest.hasRoot(read.path) && !defined.contains(read.path)) {
-                found.push_back({name, read.line, "unknown global `" + read.path + "`"});
-            }
-        }
-        for (const Access& read : usage.fieldReads) {
-            const std::string head = read.path.substr(0, read.path.find('.'));
-            if (defined.contains(head)) {
-                continue;
-            }
-            const Resolution resolved = manifest.resolve(read.path);
-            if (resolved.result == Lookup::UnknownField && !manifest.permissive()) {
-                found.push_back({name, read.line, "`" + resolved.parent + "` is not part of the API"});
-            } else if (resolved.result == Lookup::IndexesFunction) {
-                found.push_back({name, read.line, "`" + resolved.parent + "` is a function, it has no fields"});
-            }
-        }
-        for (const Access& required : usage.requires_) {
-            const std::string wanted = moduleFile(required.path);
-            if (!modules.contains(wanted) && !modules.contains(wanted + "/init")) {
-                found.push_back({name, required.line, "no module `" + required.path + "` in src/"});
-            }
-        }
+    if (const auto lang = table->string("lang"); lang.has_value() && !languageNamed(*lang).has_value()) {
+        problem("`lang` is not one of " + languageList());
     }
-    std::ranges::sort(found, [](const Diagnostic& left, const Diagnostic& right) {
-        return std::tie(left.file, left.line, left.message) < std::tie(right.file, right.line, right.message);
-    });
+    const std::string target = targetOverride.has_value() ? std::string{*targetOverride} : manifestTarget(root);
+    if (!targetNamed(target).has_value()) {
+        problem("`target` must be `server` or `proxy`");
+        return found;
+    }
+    const std::optional<std::string_view> main = table->string("main");
+    if (!main.has_value()) {
+        problem("missing `main` (a .wasm module)");
+        return found;
+    }
+    if (!isWasmMain(std::string{*main})) {
+        problem("`main` must name a .wasm module");
+        return found;
+    }
+    const fs::path module = builtModulePath(root, std::string{*main});
+    const auto bytes = wire::io::fileIO::readBytes(module.string());
+    if (bytes.has_value()) {
+        const std::vector<Diagnostic> moduleProblems =
+            verifyModule(*bytes, fs::relative(module, root).generic_string(), target);
+        found.insert(found.end(), moduleProblems.begin(), moduleProblems.end());
+    }
     return found;
 }
 

@@ -1,5 +1,7 @@
 #include "Project.hpp"
 
+#include "WasmCheck.hpp"
+
 #include <basalt/wire/io/FileIO.hpp>
 
 #include <algorithm>
@@ -8,22 +10,6 @@
 namespace fs = std::filesystem;
 
 namespace basalt::kiln {
-namespace {
-
-void collect(const fs::path& root, std::string_view folder, std::vector<std::string>& out) {
-    const fs::path start = root / std::string{folder};
-    if (!fs::is_directory(start)) {
-        return;
-    }
-    for (const fs::directory_entry& entry : fs::recursive_directory_iterator(start)) {
-        if (entry.is_regular_file()) {
-            out.push_back(fs::relative(entry.path(), root).generic_string());
-        }
-    }
-    std::ranges::sort(out);
-}
-
-} // namespace
 
 std::expected<Project, std::string> Project::open(const fs::path& root) {
     using wire::plugins::PluginManifest;
@@ -36,26 +22,35 @@ std::expected<Project, std::string> Project::open(const fs::path& root) {
     if (!manifest.has_value()) {
         return std::unexpected("plugin.toml: " + manifest.error().message);
     }
-    if (!fs::is_regular_file(root / manifest->main)) {
-        return std::unexpected("main file " + manifest->main + " does not exist");
+    if (!isWasmMain(manifest->main)) {
+        return std::unexpected("`main` must name a .wasm module");
+    }
+    const fs::path module = builtModulePath(root, manifest->main);
+    if (!fs::is_regular_file(module)) {
+        return std::unexpected(manifest->main + " is not built yet; run `kiln build` first");
     }
 
     Project project{.root = root, .manifest = *std::move(manifest), .files = {}};
-    project.files.emplace_back(PluginManifest::kFileName);
-    std::vector<std::string> code;
-    std::vector<std::string> resources;
-    collect(root, "src", code);
-    collect(root, "resources", resources);
+    project.files.push_back({std::string{PluginManifest::kFileName}, root / std::string{PluginManifest::kFileName}});
+    project.files.push_back({fs::path{project.manifest.main}.generic_string(), module});
 
+    std::vector<std::string> resources;
+    if (fs::is_directory(root / "resources")) {
+        for (const fs::directory_entry& entry : fs::recursive_directory_iterator(root / "resources")) {
+            if (entry.is_regular_file()) {
+                resources.push_back(fs::relative(entry.path(), root).generic_string());
+            }
+        }
+        std::ranges::sort(resources);
+    }
     // A resource is addressed by its name, not by where it is, so two of them cannot share one.
     std::map<std::string, std::string> byName;
     for (const std::string& file : resources) {
         if (const auto [at, added] = byName.emplace(fs::path{file}.filename().string(), file); !added) {
             return std::unexpected("resources " + at->second + " and " + file + " have the same name");
         }
+        project.files.push_back({file, root / file});
     }
-    project.files.insert(project.files.end(), code.begin(), code.end());
-    project.files.insert(project.files.end(), resources.begin(), resources.end());
     return project;
 }
 

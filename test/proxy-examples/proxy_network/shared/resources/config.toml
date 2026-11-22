@@ -1,0 +1,3 @@
+rewrite-marker = "multiplayer.player.joined"
+cancel-marker = "command.unknown.command"
+channel = "basalt:demo"

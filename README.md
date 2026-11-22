@@ -10,39 +10,39 @@
 <h2 align="center">Basalt Kiln</h2>
 
 <p align="center">
-  <strong>Compiles and verifies the Lua of a Basalt plugin. Native, no JVM.</strong>
+  <strong>Builds, checks and packs WebAssembly plugins for Basalt. Native, no JVM.</strong>
 </p>
 
 <p align="center">
   <img alt="C++" src="https://img.shields.io/badge/language-C%2B%2B-00599C?logo=cplusplus&logoColor=white">
-  <img alt="Lua" src="https://img.shields.io/badge/Lua-5.5.1-000080?logo=lua&logoColor=white">
+  <img alt="WebAssembly" src="https://img.shields.io/badge/WebAssembly-654FF0?logo=webassembly&logoColor=white">
   <img alt="Platforms" src="https://img.shields.io/badge/platforms-macOS_%7C_Linux_%7C_Windows-00599C">
   <img alt="License" src="https://img.shields.io/badge/license-GPL--3.0-green">
 </p>
 
 ## About
 
-Kiln is the command line for writing plugins. For a plugin folder it verifies `plugin.toml`, every Lua file, each
-`require` and every name taken from the Basalt API, and reports what is wrong before the plugin reaches a server. It
-compiles to Lua bytecode with the same Lua 5.5.1 the server runs, scaffolds new plugins, packs `.bspkg` (`.bppkg` for
-the proxy), runs plugin tests and signs builds.
+Kiln is the command line for writing plugins in C, C++, Zig, Rust, AssemblyScript, Go (TinyGo), Kotlin or C#. It
+downloads the compiler a language needs the first time, checks the result against the plugin ABI without running it
+and packs `.bspkg` (`.bppkg` for the proxy). See `docs/` for the languages and the toolchain cache.
 
 ```
-kiln check <plugin|file.lua|dir>      verify, write nothing
-kiln compile <plugin|file.lua|dir>    verify, then write the bytecode
-kiln new <id> [name]                  create a new plugin
-kiln pack [plugin]                    verify, then pack a .bspkg
-kiln test [plugin]                    verify, then run its tests
+kiln new <id> [name] --lang <language>   create a new plugin (--target proxy for the proxy)
+kiln build [plugin]                      compile to build/plugin.wasm
+kiln check [plugin|module.wasm]          verify plugin.toml and the module
+kiln pack [plugin]                       verify, then pack a .bspkg or .bppkg
+kiln toolchain list|install|path|clean   manage the downloaded compilers
 ```
 
 ```
 $ kiln check arena
-src/main.lua:1: no module `missing` in src/
-src/main.lua:3: `log.infoo` is not part of the API
-2 problem(s)
+build/plugin.wasm: import basalt.player_sendd is not part of ABI 1
+1 problem(s)
 ```
 
-Use `--target server|proxy` to pick the product (default `server`) and `kiln --help` for the rest.
+Use `--target server|proxy` (or `target = "proxy"` in `plugin.toml`; default `server`) to pick the product for
+`new`, `build`, `check` and `pack`, `--offline` to forbid downloads and
+`--cache-dir` or `KILN_HOME` to move the cache.
 
 ## Download
 

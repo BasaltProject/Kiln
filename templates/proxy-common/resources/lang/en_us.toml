@@ -1,0 +1,5 @@
+welcome = "<gold>Welcome to the network, <yellow>{name}</yellow>! This is visit number <green>{visits}</green>."
+hello = "<gray>Hello from @NAME@, {name}. You are on <aqua>{server}</aqua>."
+hello-usage = "<red>Usage: /@ID@ hello"
+hub-only = "<red>Only the hub is open right now."
+announce = "<gray>Powered by @NAME@."

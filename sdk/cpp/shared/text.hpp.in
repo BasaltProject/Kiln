@@ -1,0 +1,13 @@
+#include <basalt/shared.h>
+#pragma once
+#include <basalt/shared/core.hpp>
+#include <basalt/shared/text.h>
+
+namespace basalt::shared::text {
+using namespace basalt::shared::core;
+
+inline Text<256> translate(const char* key, const Args* args = nullptr) {
+    return core::detail::fill<256>(
+        [&](char* out, int cap) { return bs_translate(key, core::detail::raw(args), out, cap); });
+}
+} // namespace basalt::shared::text

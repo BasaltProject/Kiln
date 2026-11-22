@@ -1,0 +1,18 @@
+# Turns a folder tree into a table of {relative path, contents}, so the SDKs and the project templates ship inside the
+# executable and `kiln build` never reads them from beside it.
+function(kiln_embed_tree OUTPUT NAME ROOT)
+    file(GLOB_RECURSE files RELATIVE ${ROOT} CONFIGURE_DEPENDS ${ROOT}/*)
+    list(SORT files)
+    set(rows "")
+    foreach(relative ${files})
+        set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${ROOT}/${relative})
+        file(READ ${ROOT}/${relative} contents)
+        string(FIND "${contents}" ")kiln\"" terminator)
+        if(NOT terminator EQUAL -1)
+            message(FATAL_ERROR "${relative} contains the raw string terminator and cannot be embedded")
+        endif()
+        string(APPEND rows "    {\"${relative}\", R\"kiln(${contents})kiln\"},\n")
+    endforeach()
+    file(WRITE ${OUTPUT}.tmp "#include \"Embedded.hpp\"\n\nnamespace basalt::kiln {\n\nconst std::vector<EmbeddedFile> ${NAME}{\n${rows}};\n\n}\n")
+    execute_process(COMMAND ${CMAKE_COMMAND} -E copy_if_different ${OUTPUT}.tmp ${OUTPUT})
+endfunction()

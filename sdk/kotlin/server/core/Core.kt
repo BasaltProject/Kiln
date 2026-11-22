@@ -1,0 +1,56 @@
+// Handles, log levels, listener priorities, text arguments and the callback entry of the plugin ABI.
+package org.basaltmc.server.core
+import org.basaltmc.server.core.*
+import org.basaltmc.server.internal.*
+import org.basaltmc.server.values.*
+
+
+import org.basaltmc.server.internal.handlers
+
+typealias Player = Int
+typealias Ctx = Int
+typealias Handler = (Ctx) -> Unit
+
+object Level {
+    const val DEBUG = 0
+    const val INFO = 1
+    const val WARN = 2
+    const val ERROR = 3
+}
+
+object Priority {
+    const val LOWEST = 0
+    const val LOW = 1
+    const val NORMAL = 2
+    const val HIGH = 3
+    const val HIGHEST = 4
+}
+
+/** Named arguments for text: add pairs, then pass them to send, translate or commandReply. */
+class Args {
+    private val body = ArrayList<Byte>()
+    internal var count = 0
+        private set
+
+    fun add(key: String, value: String): Args {
+        count++
+        for (part in arrayOf(key, value)) {
+            val data = part.encodeToByteArray()
+            for (shift in 0..24 step 8) body.add((data.size shr shift).toByte())
+            for (b in data) body.add(b)
+        }
+        return this
+    }
+
+    internal fun packed(): ByteArray {
+        val out = ByteArray(4 + body.size)
+        for (i in 0..3) out[i] = (count shr (8 * i)).toByte()
+        for (i in body.indices) out[4 + i] = body[i]
+        return out
+    }
+}
+
+/** Runs the handler behind a callback token; Kiln's generated entry calls it from basalt_callback. */
+fun dispatch(token: Int, ctx: Int) {
+    if (token > 0 && token <= handlers.size) handlers[token - 1](ctx)
+}

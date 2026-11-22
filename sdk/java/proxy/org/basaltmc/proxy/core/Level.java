@@ -1,0 +1,11 @@
+package org.basaltmc.proxy.core;
+
+/** Log levels. */
+public final class Level {
+    private Level() {}
+
+    public static final int DEBUG = 0;
+    public static final int INFO = 1;
+    public static final int WARN = 2;
+    public static final int ERROR = 3;
+}
