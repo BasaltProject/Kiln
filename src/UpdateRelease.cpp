@@ -2,6 +2,8 @@
 #include "Update.hpp"
 #include "UpdateKey.hpp"
 
+#include <basalt_mbedtls_threads.h>
+
 extern "C" {
 #include <mbedtls/pk.h>
 #include <mbedtls/sha256.h>
@@ -94,6 +96,7 @@ bool newerVersion(std::string_view available, std::string_view installed) {
 
 bool verifyUpdateSignature(std::string_view manifest, std::span<const unsigned char> signature,
                            std::string_view publicKey) {
+    basalt_mbedtls_threading_init();
     mbedtls_pk_context key{};
     mbedtls_pk_init(&key);
     const std::string pem{publicKey};

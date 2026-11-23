@@ -5,6 +5,8 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+import tempfile
+import xml.etree.ElementTree as ET
 
 parser = argparse.ArgumentParser()
 parser.add_argument('build', type=Path)
@@ -28,6 +30,16 @@ packages = [path for path in output.iterdir() if path.suffix in ('.msi', '.pkg',
 if not packages:
     raise SystemExit('CPack produced no installable packages')
 for package in packages:
+    if sys.platform == 'darwin':
+        with tempfile.TemporaryDirectory(prefix='pkg-check-', dir=output) as temporary:
+            expanded = Path(temporary) / 'expanded'
+            subprocess.run(['pkgutil', '--expand', str(package), str(expanded)], check=True)
+            distribution = ET.parse(expanded / 'Distribution').getroot()
+            references = {element.get('id') for element in distribution.findall('pkg-ref')
+                          if element.text and element.text.strip()}
+            choices = {element.get('id') for element in distribution.findall('./choice/pkg-ref')}
+            if not choices or not choices.issubset(references):
+                raise SystemExit(f'{package.name}: distribution has no valid component package choices')
     suffix = '.pkg' if sys.platform.startswith('freebsd') else package.suffix
     name = f'Kiln-Installer-{options.version}-{options.platform}{suffix}'
     shutil.copy2(package, options.destination / name)

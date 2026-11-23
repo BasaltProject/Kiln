@@ -158,7 +158,7 @@ jobs:
         uses: vmactions/freebsd-vm@v1
         with:
           release: "15.0"
-          prepare: pkg install -y cmake ninja git llvm21 python3 pkgconf autoconf automake libtool zip unzip curl ca_root_nss
+          prepare: pkg install -y cmake ninja git llvm21 python3 pkgconf autoconf automake libtool zip unzip curl ca_root_nss patchelf
           run: |
             cmake -S . -B build/release -G Ninja -DCMAKE_C_COMPILER=clang21 -DCMAKE_CXX_COMPILER=clang++21 \
                 -DCMAKE_BUILD_TYPE=Release -DBASALT_WERROR=ON -DBASALT_VERSION=${{ needs.plan.outputs.version }} \
