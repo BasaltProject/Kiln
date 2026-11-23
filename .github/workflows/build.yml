@@ -160,7 +160,8 @@ jobs:
           release: "15.0"
           prepare: pkg install -y cmake ninja git llvm21 python3 pkgconf autoconf automake libtool zip unzip curl ca_root_nss patchelf
           run: |
-            cmake -S . -B build/release -G Ninja -DCMAKE_C_COMPILER=clang21 -DCMAKE_CXX_COMPILER=clang++21 \
+            sh .github/scripts/freebsd-toolchain.sh
+            cmake -S . -B build/release -G Ninja -DCMAKE_TOOLCHAIN_FILE="$PWD/build/freebsd-toolchain/toolchain.cmake" \
                 -DCMAKE_BUILD_TYPE=Release -DBASALT_WERROR=ON -DBASALT_VERSION=${{ needs.plan.outputs.version }} \
                 -DKILN_RELEASE_PLATFORM=FreeBSD-x64
             cmake --build build/release -j 3

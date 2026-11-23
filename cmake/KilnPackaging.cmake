@@ -31,6 +31,7 @@ install(TARGETS kiln RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runti
 install(FILES packaging/kiln.installation DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Runtime)
 install(FILES LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/basalt-kiln COMPONENT Runtime)
 
+set(CPACK_VERBATIM_VARIABLES ON)
 set(CPACK_PACKAGE_NAME basalt-kiln)
 set(CPACK_PACKAGE_VENDOR "Basalt Project")
 set(CPACK_PACKAGE_CONTACT "Whiron <dnlblasco@gmail.com>")
