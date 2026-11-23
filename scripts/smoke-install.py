@@ -9,7 +9,16 @@ import tempfile
 
 def run_msi(command, log):
     try:
-        result = subprocess.run(command, timeout=300)
+        parts = []
+        for argument in command:
+            if argument.startswith('INSTALL_ROOT='):
+                name, value = argument.split('=', 1)
+                parts.append(f'{name}="{value}"')
+            elif any(character.isspace() for character in argument):
+                parts.append(f'"{argument}"')
+            else:
+                parts.append(argument)
+        result = subprocess.run(' '.join(parts), timeout=300)
     except subprocess.TimeoutExpired:
         result = None
     if result is None or result.returncode not in (0, 3010):

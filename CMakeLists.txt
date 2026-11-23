@@ -53,7 +53,7 @@ target_include_directories(kiln-core PUBLIC src PRIVATE ${CMAKE_CURRENT_BINARY_D
 target_link_libraries(kiln-core PUBLIC basalt::wire-plugins basalt::mbedtls basalt::zlib basalt::platform basalt::warnings
     basalt::sanitizers basalt::parity)
 if(WIN32)
-    target_link_libraries(kiln-core PUBLIC crypt32 ws2_32)
+    target_link_libraries(kiln-core PUBLIC crypt32 ws2_32 msi)
 endif()
 
 add_executable(kiln src/Main.cpp src/BuildInfo.cpp)

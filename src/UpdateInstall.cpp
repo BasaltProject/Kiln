@@ -8,7 +8,10 @@
 #include <iostream>
 
 #if defined(_WIN32)
+// clang-format off
 #include <windows.h>
+#include <msi.h>
+// clang-format on
 #elif defined(__APPLE__)
 #include <mach-o/dyld.h>
 #include <unistd.h>
@@ -247,17 +250,22 @@ int applyWindowsUpdate(const std::vector<std::string>& args) {
         return 1;
     }
     if (managed) {
-        std::array<wchar_t, MAX_PATH> system{};
-        if (GetSystemDirectoryW(system.data(), static_cast<UINT>(system.size())) == 0) {
+        const fs::path installerLog = staging / "msi.log";
+        const DWORD logging = MsiEnableLogW(INSTALLLOGMODE_ERROR | INSTALLLOGMODE_WARNING | INSTALLLOGMODE_INFO |
+                                                INSTALLLOGMODE_ACTIONSTART | INSTALLLOGMODE_ACTIONDATA |
+                                                INSTALLLOGMODE_VERBOSE | INSTALLLOGMODE_PROPERTYDUMP,
+                                            installerLog.c_str(), INSTALLLOGATTRIBUTES_FLUSHEACHLINE);
+        if (logging != ERROR_SUCCESS) {
+            log << "Cannot start MSI logging: " << logging << '\n';
             return 1;
         }
-        const fs::path msiexec = fs::path{system.data()} / "msiexec.exe";
-        const ProcessResult result = runProcess({msiexec.string(), "/i", asset.string(), "/passive", "/norestart",
-                                                 "INSTALL_ROOT=" + executable.parent_path().parent_path().string(),
-                                                 "/log", (staging / "msi.log").string()},
-                                                staging);
-        log << result.output << "\nMSI exit code: " << result.exitCode << '\n';
-        return result.started && (result.exitCode == 0 || result.exitCode == 3010) ? 0 : 1;
+        MsiSetInternalUI(INSTALLUILEVEL_BASIC, nullptr);
+        const std::wstring properties =
+            L"INSTALL_ROOT=\"" + executable.parent_path().parent_path().wstring() + L"\" REBOOT=ReallySuppress";
+        const UINT result = MsiInstallProductW(asset.c_str(), properties.c_str());
+        MsiEnableLogW(0, nullptr, 0);
+        log << "MSI exit code: " << result << '\n';
+        return result == ERROR_SUCCESS || result == ERROR_SUCCESS_REBOOT_REQUIRED ? 0 : 1;
     }
     const auto installed = replacePortable(executable, asset, release->version);
     if (!installed) {
