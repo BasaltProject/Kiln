@@ -7,6 +7,21 @@ import subprocess
 import sys
 import tempfile
 
+def run_msi(command, log):
+    try:
+        result = subprocess.run(command, timeout=300)
+    except subprocess.TimeoutExpired:
+        result = None
+    if result is None or result.returncode not in (0, 3010):
+        if log.exists():
+            data = log.read_bytes()
+            encoding = 'utf-16' if data.startswith(b'\xff\xfe') else 'utf-8'
+            print(data.decode(encoding, errors='replace'), flush=True)
+        if result is None:
+            raise SystemExit('Windows Installer did not finish within 300 seconds')
+        raise SystemExit(result.returncode)
+
+
 parser = argparse.ArgumentParser()
 parser.add_argument('directory', type=Path)
 parser.add_argument('--version', required=True)
@@ -19,11 +34,9 @@ with tempfile.TemporaryDirectory(prefix='kiln-install-') as temporary:
         package = next(assets.glob('*.msi'))
         prefix = root / 'Kiln Install'
         log = root / 'msi.log'
-        command = ['msiexec.exe', '/i', str(package), '/qn', '/norestart', f'INSTALL_ROOT={prefix}', '/log', str(log)]
-        result = subprocess.run(command)
-        if result.returncode not in (0, 3010):
-            print(log.read_text(errors='replace'))
-            raise SystemExit(result.returncode)
+        command = ['msiexec.exe', '/i', str(package), '/qn', '/norestart', f'INSTALL_ROOT={prefix}', '/l*v', str(log)]
+        print('Installing MSI into ' + str(prefix), flush=True)
+        run_msi(command, log)
         binary = prefix / 'bin/kiln.exe'
         uninstall = ['msiexec.exe', '/x', str(package), '/qn', '/norestart']
     elif sys.platform == 'darwin':
@@ -43,18 +56,24 @@ with tempfile.TemporaryDirectory(prefix='kiln-install-') as temporary:
         uninstall = ['sudo', 'dpkg', '-r', 'basalt-kiln']
         subprocess.run(['rpm', '-qpl', str(next(assets.glob('*.rpm')))], check=True)
     try:
-        actual = subprocess.check_output([str(binary), '--version'], text=True).strip()
+        print('Checking installed executable: ' + str(binary), flush=True)
+        actual = subprocess.check_output([str(binary), '--version'], text=True, timeout=30).strip()
         if actual != f'Kiln {options.version}':
             raise SystemExit(f'wrong installed version: {actual}')
         if not (binary.parent / 'kiln.installation').is_file():
             raise SystemExit('missing package ownership marker')
         for setting in ('on', 'status', 'off'):
-            subprocess.run([str(binary), '--offline', 'update', '--auto', setting], env=environment, check=True)
-        if subprocess.run([str(binary), '--offline', 'update'], env=environment).returncode != 1:
+            print('Checking update setting: ' + setting, flush=True)
+            subprocess.run([str(binary), '--offline', 'update', '--auto', setting], env=environment, check=True, timeout=30)
+        if subprocess.run([str(binary), '--offline', 'update'], env=environment, timeout=30).returncode != 1:
             raise SystemExit('offline updates must fail before downloading')
     finally:
         if uninstall:
-            subprocess.run(uninstall, check=True)
+            if sys.platform == 'win32':
+                log = root / 'uninstall.log'
+                run_msi(uninstall + ['/l*v', str(log)], log)
+            else:
+                subprocess.run(uninstall, check=True)
         else:
             subprocess.run(['sudo', 'rm', '-f', str(binary), str(binary.parent / 'kiln.installation')], check=True)
             subprocess.run(['sudo', 'pkgutil', '--forget', 'org.basaltmc.kiln.Runtime'], check=False)

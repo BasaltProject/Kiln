@@ -4,6 +4,7 @@
 #include <array>
 #include <cstring>
 #include <fstream>
+#include <optional>
 #include <vector>
 
 namespace basalt::kiln {
