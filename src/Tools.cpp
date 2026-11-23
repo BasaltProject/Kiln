@@ -156,9 +156,19 @@ std::expected<Tool, std::string> findJava() {
     return Tool{executableIn(*installed, "java"), {}};
 }
 
+bool tinyGoCanUse(const fs::path& go) {
+    const ProcessResult result = runProcess({go.string(), "version"}, fs::current_path());
+    const auto version = versionOf(result.output);
+    return result.started && result.exitCode == 0 && version.has_value() && version->first == 1 &&
+           version->second >= 25 && version->second <= 27;
+}
+
 std::expected<Tool, std::string> findTinyGo() {
     const auto systemTinyGo = findOnPath("tinygo");
-    const auto systemGo = findOnPath("go");
+    auto systemGo = findOnPath("go");
+    if (systemGo.has_value() && !tinyGoCanUse(*systemGo)) {
+        systemGo.reset();
+    }
     Tool tool;
     tool.environment = cacheEnvironment(scratchDirectory());
     if (systemTinyGo.has_value() && systemGo.has_value()) {
