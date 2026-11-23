@@ -7,10 +7,11 @@
 
 namespace basalt::kiln {
 
-/// An exclusive advisory lock on a file, released when the object goes away; processes wait their turn.
+/// An exclusive advisory lock, released when the object goes away.
 class FileLock {
 public:
-    [[nodiscard]] static std::optional<FileLock> acquire(const std::filesystem::path& path, std::string& error);
+    [[nodiscard]] static std::optional<FileLock> acquire(const std::filesystem::path& path, std::string& error,
+                                                         bool wait = true);
 
     FileLock(FileLock&&) noexcept;
     FileLock& operator=(FileLock&&) noexcept;

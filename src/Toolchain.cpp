@@ -119,6 +119,12 @@ fs::path defaultCacheRoot() {
 std::string_view currentPlatform() {
 #if defined(_WIN32)
     return "windows-x64";
+#elif defined(__FreeBSD__)
+#if defined(__aarch64__)
+    return "freebsd-arm64";
+#else
+    return "freebsd-x64";
+#endif
 #elif defined(__APPLE__)
 #if defined(__aarch64__) || defined(__arm64__)
     return "macos-arm64";

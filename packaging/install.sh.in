@@ -1,0 +1,62 @@
+#!/bin/sh
+set -eu
+
+prefix="${HOME:?HOME is required}/.local"
+automatic=off
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --prefix) [ "$#" -ge 2 ] || { echo '--prefix needs a directory' >&2; exit 2; }; prefix="$2"; shift 2 ;;
+        --auto-update) automatic=on; shift ;;
+        --no-auto-update) automatic=off; shift ;;
+        *) echo 'usage: install.sh [--prefix directory] [--auto-update | --no-auto-update]' >&2; exit 2 ;;
+    esac
+done
+case "$prefix" in /*) ;; *) echo 'The prefix must be an absolute path.' >&2; exit 2 ;; esac
+for tool in curl openssl uname; do
+    command -v "$tool" >/dev/null || { echo "Missing required tool: $tool" >&2; exit 1; }
+done
+case "$(uname -s)" in
+    Linux) platform=Linux ;;
+    Darwin) platform=macOS ;;
+    FreeBSD) platform=FreeBSD ;;
+    *) echo 'Use the MSI installer on Windows.' >&2; exit 1 ;;
+esac
+case "$(uname -m)" in
+    x86_64|amd64) arch=x64 ;;
+    aarch64|arm64) arch=arm64 ;;
+    *) echo 'Unsupported architecture.' >&2; exit 1 ;;
+esac
+umask 077
+stage="$(mktemp -d "${TMPDIR:-/tmp}/kiln.XXXXXXXX")"
+trap 'rm -rf "$stage"' EXIT HUP INT TERM
+cat >"$stage/public.pem" <<'KEY'
+@KILN_UPDATE_PUBLIC_KEY@
+KEY
+root=https://github.com/BasaltProject/Kiln/releases
+fetch() { curl --fail --location --proto '=https' --proto-redir '=https' --tlsv1.2 --retry 2 --max-time 180 "$1" -o "$2"; }
+fetch "$root/latest/download/update-manifest.txt" "$stage/manifest"
+fetch "$root/latest/download/update-manifest.sig" "$stage/signature"
+openssl dgst -sha256 -verify "$stage/public.pem" -signature "$stage/signature" "$stage/manifest"
+[ "$(sed -n '1p' "$stage/manifest")" = kiln-update-v1 ] || exit 1
+version="$(sed -n '2s/^version //p' "$stage/manifest")"
+# The signed version also becomes part of the download URL and local file name.
+case "$version" in ''|*[!0-9.]*) echo 'Invalid release version.' >&2; exit 1 ;; esac
+asset="Kiln-$version-$platform-$arch"
+expected="$(awk -v name="$asset" '$2 == name {print $1}' "$stage/manifest")"
+[ "${#expected}" = 64 ] || { echo "No signed release for $platform-$arch." >&2; exit 1; }
+fetch "$root/download/v$version/$asset" "$stage/$asset"
+actual="$(openssl dgst -sha256 "$stage/$asset" | awk '{print $NF}')"
+[ "$expected" = "$actual" ] || { echo 'Checksum mismatch; nothing installed.' >&2; exit 1; }
+chmod 755 "$stage/$asset"
+[ "$("$stage/$asset" --version)" = "Kiln $version" ] || { echo 'Executable check failed.' >&2; exit 1; }
+mkdir -p "$prefix/bin"
+[ ! -e "$prefix/bin/kiln.installation" ] || { echo 'This prefix belongs to a native package.' >&2; exit 1; }
+[ ! -L "$prefix/bin/kiln" ] && [ ! -L "$prefix/bin/kiln.previous" ] || { echo 'Refusing to replace a symlink.' >&2; exit 1; }
+[ ! -e "$prefix/bin/kiln" ] || cp -p "$prefix/bin/kiln" "$prefix/bin/kiln.previous"
+next="$(mktemp "$prefix/bin/.kiln.XXXXXXXX")"
+trap 'rm -rf "$stage"; rm -f "$next"' EXIT HUP INT TERM
+cp "$stage/$asset" "$next"
+chmod 755 "$next"
+mv -f "$next" "$prefix/bin/kiln"
+"$prefix/bin/kiln" update --auto "$automatic"
+printf 'Installed Kiln %s in %s/bin. Add that directory to your PATH.\n' "$version" "$prefix"

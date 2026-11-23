@@ -43,7 +43,7 @@ FileLock& FileLock::operator=(FileLock&&) noexcept = default;
 
 FileLock::~FileLock() = default;
 
-std::optional<FileLock> FileLock::acquire(const fs::path& path, std::string& error) {
+std::optional<FileLock> FileLock::acquire(const fs::path& path, std::string& error, bool wait) {
     std::error_code ignored;
     fs::create_directories(path.parent_path(), ignored);
     auto handle = std::make_unique<Handle>();
@@ -55,7 +55,8 @@ std::optional<FileLock> FileLock::acquire(const fs::path& path, std::string& err
         return std::nullopt;
     }
     OVERLAPPED overlapped{};
-    if (!LockFileEx(handle->file, LOCKFILE_EXCLUSIVE_LOCK, 0, MAXDWORD, MAXDWORD, &overlapped)) {
+    if (!LockFileEx(handle->file, LOCKFILE_EXCLUSIVE_LOCK | (wait ? 0 : LOCKFILE_FAIL_IMMEDIATELY), 0, MAXDWORD,
+                    MAXDWORD, &overlapped)) {
         error = "cannot lock " + path.string();
         return std::nullopt;
     }
@@ -65,7 +66,7 @@ std::optional<FileLock> FileLock::acquire(const fs::path& path, std::string& err
         error = "cannot open the lock file " + path.string();
         return std::nullopt;
     }
-    if (flock(handle->descriptor, LOCK_EX) != 0) {
+    if (flock(handle->descriptor, LOCK_EX | (wait ? 0 : LOCK_NB)) != 0) {
         error = "cannot lock " + path.string();
         return std::nullopt;
     }

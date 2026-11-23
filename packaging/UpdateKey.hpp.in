@@ -1,0 +1,9 @@
+#pragma once
+
+#include <string_view>
+
+namespace basalt::kiln {
+
+inline constexpr std::string_view kUpdatePublicKey = R"key(@KILN_UPDATE_PUBLIC_KEY@)key";
+
+} // namespace basalt::kiln

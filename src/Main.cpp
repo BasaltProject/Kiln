@@ -1,6 +1,7 @@
 #include "BuildInfo.hpp"
 #include "Commands.hpp"
 #include "Toolchain.hpp"
+#include "Update.hpp"
 
 #include <iostream>
 #include <string>
@@ -13,6 +14,7 @@ constexpr std::string_view kUsage = "usage: kiln new <id> [name] [--lang <langua
                                     "       kiln check [plugin|module.wasm] [--target server|proxy]\n"
                                     "       kiln pack [plugin] [--target server|proxy]\n"
                                     "       kiln toolchain list | install <language|id> | path <language|id> | clean\n"
+                                    "       kiln update [--check | --auto on|off|status]\n"
                                     "       kiln --version\n"
                                     "options: --cache-dir <dir>  --offline  --no-download\n";
 
@@ -41,21 +43,31 @@ int main(int argc, char** argv) {
         cache.root = basalt::kiln::defaultCacheRoot();
     }
     if (!args.empty()) {
+        if (args[0] == "__apply-update") {
+            return basalt::kiln::applyWindowsUpdate(args);
+        }
+        if (args[0] == "update") {
+            return basalt::kiln::runUpdate(args, basalt::kiln::buildInfo::kVersion);
+        }
+        int result = 2;
         if (args[0] == "new") {
-            return basalt::kiln::runNew(args);
+            result = basalt::kiln::runNew(args);
+        } else if (args[0] == "build") {
+            result = basalt::kiln::runBuild(args);
+        } else if (args[0] == "check") {
+            result = basalt::kiln::runCheck(args);
+        } else if (args[0] == "pack") {
+            result = basalt::kiln::runPack(args);
+        } else if (args[0] == "toolchain") {
+            result = basalt::kiln::runToolchain(args);
+        } else {
+            std::cerr << kUsage;
+            return 2;
         }
-        if (args[0] == "build") {
-            return basalt::kiln::runBuild(args);
+        if (result == 0) {
+            basalt::kiln::autoUpdate(basalt::kiln::buildInfo::kVersion);
         }
-        if (args[0] == "check") {
-            return basalt::kiln::runCheck(args);
-        }
-        if (args[0] == "pack") {
-            return basalt::kiln::runPack(args);
-        }
-        if (args[0] == "toolchain") {
-            return basalt::kiln::runToolchain(args);
-        }
+        return result;
     }
     std::cerr << kUsage;
     return 2;

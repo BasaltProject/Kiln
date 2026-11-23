@@ -83,7 +83,7 @@ jobs:
 
       - name: Configure
         shell: bash
-        run: eval cmake --preset release -DCMAKE_BUILD_TYPE=Release "-DBASALT_VERSION=${{ needs.plan.outputs.version }}" $BASALT_CMAKE_ARGS
+        run: eval cmake --preset release -DCMAKE_BUILD_TYPE=Release "-DBASALT_VERSION=${{ needs.plan.outputs.version }}" "-DKILN_RELEASE_PLATFORM=${{ matrix.target }}" "$BASALT_CMAKE_ARGS"
 
       - name: Build
         shell: bash
@@ -118,10 +118,61 @@ jobs:
               otool -l "$binary" | grep -A4 LC_BUILD_VERSION | grep -q 'minos 13.0'
           done
 
+      - name: Install Linux packaging tools
+        if: runner.os == 'Linux'
+        run: sudo apt-get install -y rpm dpkg-dev
+
+      - name: Install WiX
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          DOTNET_ROLL_FORWARD: Major
+        run: |
+          dotnet tool install --global wix --version 4.0.6
+          wix extension add --global WixToolset.UI.wixext/4.0.6
+
+      - name: Package the installers
+        env:
+          DOTNET_ROLL_FORWARD: Major
+        run: python3 scripts/package-release.py build/release dist --version ${{ needs.plan.outputs.version }} --platform ${{ matrix.target }}
+
+      - name: Test installation and removal
+        run: python3 scripts/smoke-install.py dist --version ${{ needs.plan.outputs.version }}
+
       - name: Upload the binary
         uses: actions/upload-artifact@v4
         with:
           name: kiln-${{ matrix.target }}
+          path: dist/
+
+  freebsd:
+    needs: plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Build and package on FreeBSD
+        uses: vmactions/freebsd-vm@v1
+        with:
+          release: "15.0"
+          prepare: pkg install -y cmake ninja git llvm21 python3 pkgconf autoconf automake libtool zip unzip curl ca_root_nss
+          run: |
+            cmake -S . -B build/release -G Ninja -DCMAKE_C_COMPILER=clang21 -DCMAKE_CXX_COMPILER=clang++21 \
+                -DCMAKE_BUILD_TYPE=Release -DBASALT_WERROR=ON -DBASALT_VERSION=${{ needs.plan.outputs.version }} \
+                -DKILN_RELEASE_PLATFORM=FreeBSD-x64
+            cmake --build build/release -j 3
+            ctest --test-dir build/release --output-on-failure
+            mkdir dist
+            cp build/release/kiln dist/Kiln-${{ needs.plan.outputs.version }}-FreeBSD-x64
+            python3 scripts/package-release.py build/release dist --version ${{ needs.plan.outputs.version }} --platform FreeBSD-x64
+            python3 scripts/smoke-install.py dist --version ${{ needs.plan.outputs.version }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kiln-FreeBSD-x64
           path: dist/
 
   sanitize:
@@ -144,7 +195,7 @@ jobs:
         run: .github/scripts/select-compiler.sh
 
       - name: Configure with the address and undefined sanitizers
-        run: eval cmake --preset asan $BASALT_CMAKE_ARGS
+        run: eval cmake --preset asan "$BASALT_CMAKE_ARGS"
 
       - name: Build
         run: cmake --build build/asan
@@ -162,11 +213,13 @@ jobs:
         run: .github/scripts/select-compiler.sh
 
       - name: Check formatting
-        run: find src -name '*.hpp' -o -name '*.cpp' | xargs clang-format-19 --dry-run --Werror
+        run: |
+          find src \( -name '*.hpp' -o -name '*.cpp' \) -exec clang-format-19 --dry-run --Werror {} +
+          clang-format-19 --dry-run --Werror test/*Test.cpp
 
   release:
     if: ${{ github.event_name == 'push' }}
-    needs: [plan, build, sanitize, format]
+    needs: [plan, build, freebsd, sanitize, format]
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     permissions:
@@ -182,4 +235,5 @@ jobs:
       - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}
+          KILN_UPDATE_SIGNING_KEY: ${{ secrets.KILN_UPDATE_SIGNING_KEY }}
         run: .github/scripts/publish-release.sh "${{ needs.plan.outputs.version }}" "$GITHUB_SHA" artifacts

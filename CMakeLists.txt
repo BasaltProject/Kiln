@@ -43,10 +43,13 @@ kiln_embed_tree(${CMAKE_CURRENT_BINARY_DIR}/EmbeddedAbi.cpp kAbiFiles ${CMAKE_CU
 add_library(kiln-core STATIC
     src/Archive.cpp src/Build.cpp src/Commands.cpp src/FileLock.cpp src/Http.cpp src/Languages.cpp src/Pack.cpp
     src/Plugin.cpp src/Process.cpp src/Project.cpp src/Scaffold.cpp src/Sha256.cpp src/Toolchain.cpp
-    src/ToolchainPins.cpp src/Tools.cpp src/Wasm.cpp src/WasmCheck.cpp src/Xz.cpp
+    src/ToolchainPins.cpp src/Tools.cpp src/Update.cpp src/UpdateInstall.cpp src/UpdateRelease.cpp
+    src/Wasm.cpp src/WasmCheck.cpp src/Xz.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/AbiTable.cpp ${CMAKE_CURRENT_BINARY_DIR}/EmbeddedSdk.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/EmbeddedTemplates.cpp ${CMAKE_CURRENT_BINARY_DIR}/EmbeddedAbi.cpp)
-target_include_directories(kiln-core PUBLIC src)
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/packaging/update-public.pem" KILN_UPDATE_PUBLIC_KEY)
+configure_file(packaging/UpdateKey.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/UpdateKey.hpp @ONLY)
+target_include_directories(kiln-core PUBLIC src PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(kiln-core PUBLIC basalt::wire-plugins basalt::mbedtls basalt::zlib basalt::platform basalt::warnings
     basalt::sanitizers basalt::parity)
 if(WIN32)
@@ -58,9 +61,12 @@ set_source_files_properties(src/BuildInfo.cpp PROPERTIES COMPILE_DEFINITIONS BAS
 target_link_libraries(kiln PRIVATE kiln-core)
 
 basalt_test(kiln-wasm-test SOURCES test/WasmTest.cpp DEPENDS kiln-core)
+basalt_test(kiln-update-test SOURCES test/UpdateTest.cpp DEPENDS kiln-core)
 
 find_package(Python3 COMPONENTS Interpreter QUIET)
 if(BASALT_BUILD_TESTS AND Python3_FOUND)
     add_test(NAME kiln-sdk-generated COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/scripts/gen-sdk.py --check)
     add_test(NAME kiln-worlds-generated COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/scripts/gen-worlds.py --check)
 endif()
+
+include(cmake/KilnPackaging.cmake)

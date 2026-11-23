@@ -22,7 +22,7 @@ struct CacheSettings {
 /// `--cache-dir`, then `$KILN_HOME`, then the per-user cache folder of the platform.
 [[nodiscard]] std::filesystem::path defaultCacheRoot();
 
-/// `linux-x64`, `linux-arm64`, `macos-x64`, `macos-arm64` or `windows-x64`.
+/// The current OS and CPU, for example linux-x64 or freebsd-arm64.
 [[nodiscard]] std::string_view currentPlatform();
 
 [[nodiscard]] std::vector<Pin> pinsFor(std::string_view id, std::string_view platform);

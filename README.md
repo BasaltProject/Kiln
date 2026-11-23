@@ -16,7 +16,7 @@
 <p align="center">
   <img alt="C++" src="https://img.shields.io/badge/language-C%2B%2B-00599C?logo=cplusplus&logoColor=white">
   <img alt="WebAssembly" src="https://img.shields.io/badge/WebAssembly-654FF0?logo=webassembly&logoColor=white">
-  <img alt="Platforms" src="https://img.shields.io/badge/platforms-macOS_%7C_Linux_%7C_Windows-00599C">
+  <img alt="Platforms" src="https://img.shields.io/badge/platforms-macOS_%7C_Linux_%7C_Windows_%7C_FreeBSD-00599C">
   <img alt="License" src="https://img.shields.io/badge/license-GPL--3.0-green">
 </p>
 
@@ -33,6 +33,8 @@ kiln build [plugin]                      compile to build/plugin.wasm
 kiln check [plugin|module.wasm]          verify plugin.toml and the module
 kiln pack [plugin]                       verify, then pack a .bspkg or .bppkg
 kiln toolchain list|install|path|clean   manage the downloaded compilers
+kiln update [--check]                   check for or install the latest release
+kiln update --auto on|off|status         configure automatic updates
 ```
 
 ```
@@ -47,8 +49,25 @@ Use `--target server|proxy` (or `target = "proxy"` in `plugin.toml`; default `se
 
 ## Download
 
-Each release on the [releases page](https://github.com/BasaltProject/Kiln/releases) carries the executable and a
-`SHA256SUMS` file. Put it on your `PATH` as `kiln`.
+Get a portable executable or installer from the [releases page](https://github.com/BasaltProject/Kiln/releases).
+Installers use the `Kiln-Installer-` prefix; portable executables use `Kiln-`.
+
+| System | Installer |
+|---|---|
+| Windows | `.msi` |
+| macOS | `.pkg` |
+| Debian / Ubuntu | `.deb` |
+| Fedora / RPM distributions | `.rpm` |
+| FreeBSD | `.pkg` |
+
+The Unix `.sh` installer installs in `~/.local/bin`. For portable binaries, put the executable on your `PATH` as
+`kiln` (`kiln.exe` on Windows). Windows and macOS installers currently lack platform signing certificates.
+
+## Updates
+
+Run `kiln update` to update, or `kiln update --check` to check only. Enable optional automatic updates with
+`kiln update --auto on`; they are off by default and run after successful commands, at most once a day.
+Updates verify release signatures and checksums. System-managed installations use their package manager.
 
 ## Building
 

@@ -32,9 +32,7 @@ namespace basalt::kiln {
 namespace {
 
 constexpr int kMaxRedirects = 5;
-constexpr int kMaxAttempts = 4;
 constexpr std::size_t kMaxHeaderBytes = 64UL * 1024UL;
-constexpr std::uint32_t kReadTimeoutMs = 60000;
 
 constexpr std::array<const char*, 6> kTrustStores{
     "/etc/ssl/cert.pem",
@@ -149,7 +147,7 @@ public:
         mbedtls_entropy_free(&entropy_);
     }
 
-    [[nodiscard]] bool open(const Url& url, std::string& error) {
+    [[nodiscard]] bool open(const Url& url, std::string& error, std::uint32_t timeout) {
         int code = mbedtls_ctr_drbg_seed(&random_, mbedtls_entropy_func, &entropy_, nullptr, 0);
         if (code == 0) {
             code = mbedtls_ssl_config_defaults(&config_, MBEDTLS_SSL_IS_CLIENT, MBEDTLS_SSL_TRANSPORT_STREAM,
@@ -162,7 +160,7 @@ public:
         mbedtls_ssl_conf_authmode(&config_, MBEDTLS_SSL_VERIFY_REQUIRED);
         mbedtls_ssl_conf_ca_chain(&config_, trust_.roots(), nullptr);
         mbedtls_ssl_conf_rng(&config_, mbedtls_ctr_drbg_random, &random_);
-        mbedtls_ssl_conf_read_timeout(&config_, kReadTimeoutMs);
+        mbedtls_ssl_conf_read_timeout(&config_, timeout);
         mbedtls_ssl_conf_min_tls_version(&config_, MBEDTLS_SSL_VERSION_TLS1_2);
         if ((code = mbedtls_ssl_setup(&ssl_, &config_)) != 0 ||
             (code = mbedtls_ssl_set_hostname(&ssl_, url.host.c_str())) != 0) {
@@ -345,16 +343,20 @@ private:
     std::string pending_;
 };
 
-Attempt fetchOnce(Trust& trust, const Url& url, const fs::path& part, const ProgressFn& progress) {
+Attempt fetchOnce(Trust& trust, const Url& url, const fs::path& part, const ProgressFn& progress,
+                  const DownloadOptions& options) {
     Attempt attempt;
     std::uint64_t existing = 0;
     std::error_code ignored;
     if (fs::exists(part, ignored)) {
         existing = fs::file_size(part, ignored);
     }
+    if (existing > options.maxBytes) {
+        return {Outcome::Fail, "download exceeds the allowed size", {}};
+    }
     Connection connection{trust};
     std::string error;
-    if (!connection.open(url, error)) {
+    if (!connection.open(url, error, options.readTimeoutMs)) {
         attempt = {Outcome::Retry, error, {}};
         return attempt;
     }
@@ -407,6 +409,9 @@ Attempt fetchOnce(Trust& trust, const Url& url, const fs::path& part, const Prog
     const auto encoding = head->headers.find("transfer-encoding");
     const bool chunked =
         encoding != head->headers.end() && lowered(encoding->second).find("chunked") != std::string::npos;
+    if (length && (*length > options.maxBytes || offset > options.maxBytes - *length)) {
+        return {Outcome::Fail, "download exceeds the allowed size", {}};
+    }
     std::ofstream out{part, std::ios::binary | (offset > 0 ? std::ios::app : std::ios::trunc)};
     if (!out) {
         return {Outcome::Fail, "cannot write " + part.string(), {}};
@@ -416,6 +421,9 @@ Attempt fetchOnce(Trust& trust, const Url& url, const fs::path& part, const Prog
     BodyReader body{connection, head->leftover};
     std::string piece;
     const auto store = [&](const std::string& bytes) {
+        if (bytes.size() > options.maxBytes - stored) {
+            return false;
+        }
         out.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
         stored += bytes.size();
         if (progress) {
@@ -471,7 +479,8 @@ std::optional<Url> resolveLocation(const Url& base, const std::string& location)
 
 } // namespace
 
-std::expected<void, std::string> httpsDownload(std::string_view url, const fs::path& part, const ProgressFn& progress) {
+std::expected<void, std::string> httpsDownload(std::string_view url, const fs::path& part, const ProgressFn& progress,
+                                               const DownloadOptions& options) {
     std::optional<Url> current = parseUrl(url);
     if (!current.has_value()) {
         return std::unexpected("only https URLs can be downloaded: " + std::string{url});
@@ -485,7 +494,7 @@ std::expected<void, std::string> httpsDownload(std::string_view url, const fs::p
     int redirects = 0;
     int failures = 0;
     for (;;) {
-        const Attempt attempt = fetchOnce(trust, *current, part, progress);
+        const Attempt attempt = fetchOnce(trust, *current, part, progress, options);
         switch (attempt.outcome) {
         case Outcome::Done:
             return {};
@@ -499,7 +508,7 @@ std::expected<void, std::string> httpsDownload(std::string_view url, const fs::p
             break;
         }
         case Outcome::Retry:
-            if (++failures >= kMaxAttempts) {
+            if (++failures >= options.attempts) {
                 return std::unexpected(attempt.message);
             }
             std::this_thread::sleep_for(std::chrono::seconds{failures});
