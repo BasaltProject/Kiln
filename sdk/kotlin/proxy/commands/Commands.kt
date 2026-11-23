@@ -1,16 +1,14 @@
 @file:OptIn(kotlin.wasm.unsafe.UnsafeWasmMemoryApi::class)
 
 package org.basaltmc.proxy.commands
-import org.basaltmc.proxy.core.*
-import org.basaltmc.proxy.internal.*
-import org.basaltmc.proxy.values.*
-
 
 import kotlin.wasm.unsafe.withScopedMemoryAllocator
+import org.basaltmc.proxy.core.*
 import org.basaltmc.proxy.core.Args
 import org.basaltmc.proxy.core.Ctx
 import org.basaltmc.proxy.core.Handler
 import org.basaltmc.proxy.internal.*
+import org.basaltmc.proxy.values.*
 
 fun command(spec: String, permission: String, handler: Handler): Int = withScopedMemoryAllocator { a ->
     val s = a.str(spec)

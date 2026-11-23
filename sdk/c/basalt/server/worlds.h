@@ -77,11 +77,11 @@ static inline int32_t bs_world_delete(const char *name) {
 }
 
 static inline int32_t bs_world_at(int32_t world, double x, double z, bs_handler done) {
-    const int32_t token = bs_token_for(done);
+    const int32_t token = bs_once_token(done);
     if (token <= 0) {
         return BASALT_ERR_INVALID;
     }
-    return basalt_world_at(world, x, z, token);
+    return bs_once_bind(token, BS_ONCE_REQUEST, basalt_world_at(world, x, z, token));
 }
 
 static inline int32_t bs_world_block_get(int32_t world, int32_t x, int32_t y, int32_t z, int32_t flags, char *buffer, int32_t cap) {
@@ -189,11 +189,11 @@ static inline int32_t bs_world_chunk_unload(int32_t world, int32_t chunk_x, int3
 }
 
 static inline int32_t bs_world_chunk_request(int32_t world, int32_t chunk_x, int32_t chunk_z, int32_t flags, int32_t priority, bs_handler done) {
-    const int32_t token = bs_token_for(done);
+    const int32_t token = bs_once_token(done);
     if (token <= 0) {
         return BASALT_ERR_INVALID;
     }
-    return basalt_world_chunk_request(world, chunk_x, chunk_z, flags, priority, token);
+    return bs_once_bind(token, BS_ONCE_REQUEST, basalt_world_chunk_request(world, chunk_x, chunk_z, flags, priority, token));
 }
 
 static inline int32_t bs_world_chunks_loaded(int32_t world, int32_t *buffer, int32_t cap) {
@@ -241,11 +241,11 @@ static inline int32_t bs_world_light_write(int32_t world, int32_t chunk_x, int32
 }
 
 static inline int32_t bs_world_light_check(int32_t world, const int32_t *chunks, int32_t count, bs_handler done) {
-    const int32_t token = bs_token_for(done);
+    const int32_t token = bs_once_token(done);
     if (token <= 0) {
         return BASALT_ERR_INVALID;
     }
-    return basalt_world_light_check(world, chunks, count, token);
+    return bs_once_bind(token, BS_ONCE_REQUEST, basalt_world_light_check(world, chunks, count, token));
 }
 
 static inline int32_t bs_world_biome_get(int32_t world, int32_t x, int32_t y, int32_t z, char *buffer, int32_t cap) {
@@ -381,7 +381,7 @@ static inline int32_t bs_world_value_result(int32_t ctx, char *buffer, int32_t c
 }
 
 static inline int32_t bs_world_request_cancel(int32_t request) {
-    return basalt_request_cancel(request);
+    return bs_request_cancel(request);
 }
 
 

@@ -1,16 +1,14 @@
 @file:OptIn(kotlin.wasm.unsafe.UnsafeWasmMemoryApi::class)
 
 package org.basaltmc.proxy.events
-import org.basaltmc.proxy.core.*
-import org.basaltmc.proxy.internal.*
-import org.basaltmc.proxy.values.*
-
 
 import kotlin.wasm.unsafe.withScopedMemoryAllocator
+import org.basaltmc.proxy.core.*
 import org.basaltmc.proxy.core.Ctx
 import org.basaltmc.proxy.core.Handler
 import org.basaltmc.proxy.core.Player
 import org.basaltmc.proxy.internal.*
+import org.basaltmc.proxy.values.*
 
 fun on(event: String, priority: Int, handler: Handler): Int =
     withScopedMemoryAllocator { a -> val e = a.str(event); rawEventOn(e.ptr, e.len, priority, tokenFor(handler)) }

@@ -1,29 +1,30 @@
 package org.basaltmc.server.example;
 
-import static org.basaltmc.server.commands.Commands.command;
-import static org.basaltmc.server.commands.Commands.commandArgI64;
-import static org.basaltmc.server.commands.Commands.commandIsConsole;
-import static org.basaltmc.server.commands.Commands.commandReply;
-import static org.basaltmc.server.commands.Commands.commandSourceName;
-import static org.basaltmc.server.config.Config.configI64;
-import static org.basaltmc.server.core.Priority.NORMAL;
-import static org.basaltmc.server.data.SharedData.dataGetI64;
-import static org.basaltmc.server.data.SharedData.dataSetI64;
-import static org.basaltmc.server.events.Events.eventPlayer;
-import static org.basaltmc.server.events.Events.on;
-import static org.basaltmc.server.log.Log.logInfo;
-import static org.basaltmc.server.menus.Menus.menuClickPlayer;
-import static org.basaltmc.server.menus.Menus.menuCreate;
-import static org.basaltmc.server.menus.Menus.menuOpen;
-import static org.basaltmc.server.menus.Menus.menuSet;
-import static org.basaltmc.server.players.Players.particle;
-import static org.basaltmc.server.players.SharedPlayers.playerByName;
-import static org.basaltmc.server.players.SharedPlayers.playerName;
-import static org.basaltmc.server.players.SharedPlayers.playersOnline;
-import static org.basaltmc.server.players.SharedPlayers.send;
-import static org.basaltmc.server.tasks.Tasks.every;
-import static org.basaltmc.server.text.Text.translate;
+import org.basaltmc.server.commands.Registry;
 import org.basaltmc.server.core.Args;
+
+import static org.basaltmc.server.commands.Arguments.i64;
+import static org.basaltmc.server.commands.Sender.isConsole;
+import static org.basaltmc.server.commands.Sender.name;
+import static org.basaltmc.server.commands.Sender.reply;
+import static org.basaltmc.server.config.Settings.configI64;
+import static org.basaltmc.server.core.Priority.NORMAL;
+import static org.basaltmc.server.data.PlayerStore.dataGetI64;
+import static org.basaltmc.server.data.PlayerStore.dataSetI64;
+import static org.basaltmc.server.events.EventBus.eventPlayer;
+import static org.basaltmc.server.events.EventBus.on;
+import static org.basaltmc.server.log.Logger.logInfo;
+import static org.basaltmc.server.menus.InventoryMenu.menuClickPlayer;
+import static org.basaltmc.server.menus.InventoryMenu.menuCreate;
+import static org.basaltmc.server.menus.InventoryMenu.menuOpen;
+import static org.basaltmc.server.menus.InventoryMenu.menuSet;
+import static org.basaltmc.server.players.Directory.particle;
+import static org.basaltmc.server.players.Directory.playerByName;
+import static org.basaltmc.server.players.Directory.playerName;
+import static org.basaltmc.server.players.Directory.playersOnline;
+import static org.basaltmc.server.players.Directory.send;
+import static org.basaltmc.server.tasks.Scheduler.every;
+import static org.basaltmc.server.text.Translations.translate;
 
 public final class Main {
     private static int shop = 0;
@@ -58,27 +59,27 @@ public final class Main {
     }
 
     private static void hello(int ctx) {
-        Long given = commandArgI64(ctx, "times");
+        Long given = i64(ctx, "times");
         long times = given == null ? 1 : given;
-        Args args = new Args().add("name", orEmpty(commandSourceName(ctx)));
+        Args args = new Args().add("name", orEmpty(name(ctx)));
         for (long i = 0; i < times; i++) {
-            commandReply(ctx, "@hello", args);
+            reply(ctx, "@hello", args);
         }
     }
 
     private static void openShop(int ctx) {
-        if (commandIsConsole(ctx)) {
-            commandReply(ctx, "<red>The shop needs a player.");
+        if (isConsole(ctx)) {
+            reply(ctx, "<red>The shop needs a player.");
             return;
         }
-        menuOpen(shop, playerByName(orEmpty(commandSourceName(ctx))));
+        menuOpen(shop, playerByName(orEmpty(name(ctx))));
     }
 
     public static void init() {
         logInfo("starting up");
         on("player.join", NORMAL, Main::onJoin);
-        command("@ID@ hello [times: int 1..5]", "", Main::hello);
-        command("@ID@ shop", "", Main::openShop);
+        Registry.register("@ID@ hello [times: int 1..5]", "", Main::hello);
+        Registry.register("@ID@ shop", "", Main::openShop);
 
         shop = menuCreate(orEmpty(translate("shop-title")), 3);
         String lore = orEmpty(translate("shop-item-sparkles-lore", new Args().add("price", "100")));

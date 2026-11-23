@@ -1,4 +1,5 @@
 package org.basaltmc.proxy.internal;
+
 import org.teavm.interop.Address;
 import org.teavm.interop.Import;
 

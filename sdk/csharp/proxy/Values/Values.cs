@@ -1,13 +1,14 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Runtime.InteropServices;
 using Basalt.Proxy.Core;
 using Basalt.Proxy.Internal;
 using Basalt.Proxy.Values;
-using static Basalt.Proxy.Internal.Native;
+using System;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using System.Text;
 using static Basalt.Proxy.Core.Level;
 using static Basalt.Proxy.Core.Priority;
+using static Basalt.Proxy.Internal.Native;
+
 namespace Basalt.Proxy.Values;
 
 // Value builder and reader over the byte format of basalt_values.h. The writer grows a heap buffer (an optional limit

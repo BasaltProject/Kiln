@@ -1,16 +1,17 @@
+using Basalt.Proxy.Admin;
+using Basalt.Proxy.Commands;
 using Basalt.Proxy.Core;
+using Basalt.Proxy.Log;
+using Basalt.Proxy.Players;
 using Basalt.Proxy.Values;
-using SdkCommands = global::Basalt.Proxy.Commands.Commands;
-using SdkLogger = global::Basalt.Proxy.Log.Logger;
-using SdkPlayers = global::Basalt.Proxy.Players.Players;
-using SdkProxyAdmin = global::Basalt.Proxy.Admin.ProxyAdmin;
+
 public static class Plugin
 {
-    static void SayInt(string label, long number) => SdkLogger.LogInfo(label + number);
+    static void SayInt(string label, long number) => Logger.LogInfo(label + number);
 
     static void OnCheck(int ctx)
     {
-        if (!SdkProxyAdmin.PermissionRequest(ctx, out Value request))
+        if (!Management.PermissionRequest(ctx, out Value request))
         {
             return;
         }
@@ -20,26 +21,26 @@ public static class Plugin
         }
         if (node == "proxyadmin.granted")
         {
-            SdkProxyAdmin.PermissionAnswer(ctx, 1);
+            Management.PermissionAnswer(ctx, 1);
         }
         else if (node == "proxyadmin.denied")
         {
-            SdkProxyAdmin.PermissionAnswer(ctx, 0);
+            Management.PermissionAnswer(ctx, 0);
         }
     }
 
-    static void OnMeta(int ctx) => SdkProxyAdmin.PermissionAnswerText(ctx, "[Admin] ");
+    static void OnMeta(int ctx) => Management.PermissionAnswerText(ctx, "[Admin] ");
 
     static void OnPing(int ctx)
     {
-        if (!SdkProxyAdmin.CompletionValue(ctx, out Value root))
+        if (!Management.CompletionValue(ctx, out Value root))
         {
-            SdkLogger.LogInfo("ping failed");
+            Logger.LogInfo("ping failed");
             return;
         }
         if (root.IsNull)
         {
-            SdkLogger.LogInfo("ping offline");
+            Logger.LogInfo("ping offline");
             return;
         }
         long online = -1;
@@ -47,19 +48,19 @@ public static class Plugin
         {
             field.TryInt(out online);
         }
-        SdkLogger.LogInfo("ping answered");
+        Logger.LogInfo("ping answered");
         SayInt("ping online: ", online);
     }
 
     static void OnWait(int ctx)
     {
-        SdkLogger.LogInfo("waited");
-        if (SdkProxyAdmin.DataValue(null, "visits", out Value visits))
+        Logger.LogInfo("waited");
+        if (Management.DataValue(null, "visits", out Value visits))
         {
             visits.TryInt(out long count);
             SayInt("store visits: ", count);
         }
-        if (SdkProxyAdmin.StoreTop("visits", 3, out Value top))
+        if (Management.StoreTop("visits", 3, out Value top))
         {
             SayInt("store top entries: ", top.Count);
         }
@@ -67,74 +68,74 @@ public static class Plugin
 
     static void OnCommand(int ctx)
     {
-        string name = SdkCommands.CommandSourceName(ctx);
+        string name = Sender.Name(ctx);
         if (name == null)
         {
             return;
         }
-        int player = SdkPlayers.PlayerByName(name);
-        SdkLogger.LogInfo("command by: " + name);
-        SdkProxyAdmin.GroupSet(name, "vip");
-        string group = SdkProxyAdmin.GroupGet(name);
+        int player = Directory.PlayerByName(name);
+        Logger.LogInfo("command by: " + name);
+        Management.GroupSet(name, "vip");
+        string group = Management.GroupGet(name);
         if (group != null)
         {
-            SdkLogger.LogInfo("group is: " + group);
+            Logger.LogInfo("group is: " + group);
         }
-        SdkProxyAdmin.PermissionOverride(name, "proxyadmin.extra", 1);
-        SayInt("override check: ", SdkProxyAdmin.PermissionCheck(name, "proxyadmin.extra"));
-        SayInt("granted check: ", SdkProxyAdmin.PermissionCheck(name, "proxyadmin.granted"));
-        SayInt("denied check: ", SdkProxyAdmin.PermissionCheck(name, "proxyadmin.denied"));
-        SdkProxyAdmin.PermissionOverride(name, "proxyadmin.extra", -1);
-        SayInt("override removed: ", SdkProxyAdmin.PermissionCheck(name, "proxyadmin.extra"));
-        SdkProxyAdmin.PlayerChat(player, "plain chat from the plugin");
-        SdkProxyAdmin.PlayerSendJson(player, "{\"text\":\"json message\",\"color\":\"green\"}");
-        SdkProxyAdmin.DataSetInt(name, "coins", 7);
-        SdkLogger.LogInfo("command done");
+        Management.PermissionOverride(name, "proxyadmin.extra", 1);
+        SayInt("override check: ", Management.PermissionCheck(name, "proxyadmin.extra"));
+        SayInt("granted check: ", Management.PermissionCheck(name, "proxyadmin.granted"));
+        SayInt("denied check: ", Management.PermissionCheck(name, "proxyadmin.denied"));
+        Management.PermissionOverride(name, "proxyadmin.extra", -1);
+        SayInt("override removed: ", Management.PermissionCheck(name, "proxyadmin.extra"));
+        Management.PlayerChat(player, "plain chat from the plugin");
+        Management.PlayerSendJson(player, "{\"text\":\"json message\",\"color\":\"green\"}");
+        Management.DataSetInt(name, "coins", 7);
+        Logger.LogInfo("command done");
     }
 
-    static void OnConsole(int ctx) => SdkLogger.LogInfo("console command ran");
+    static void OnConsole(int ctx) => Logger.LogInfo("console command ran");
 
     static void OnKickCommand(int ctx)
     {
-        string name = SdkCommands.CommandSourceName(ctx);
+        string name = Sender.Name(ctx);
         if (name != null)
         {
-            SdkProxyAdmin.PlayerKickJson(SdkPlayers.PlayerByName(name), "{\"text\":\"kicked by json\",\"color\":\"red\"}");
+            Management.PlayerKickJson(Directory.PlayerByName(name), "{\"text\":\"kicked by json\",\"color\":\"red\"}");
         }
     }
 
     public static void Init()
     {
-        SdkProxyAdmin.PermissionProvide(OnCheck, OnMeta);
-        SdkProxyAdmin.PermissionChanged();
-        SayInt("register extra: ", SdkProxyAdmin.ServersRegister("extra", "127.0.0.1", 25599, "lobby", out _));
-        SayInt("register again: ", SdkProxyAdmin.ServersRegister("extra", "127.0.0.1", 25599, "lobby", out _));
-        SayInt("register bad port: ", SdkProxyAdmin.ServersRegister("bad", "127.0.0.1", 0, "", out _));
-        SayInt("unregister extra: ", SdkProxyAdmin.ServersUnregister("extra"));
-        SayInt("unregister lobby: ", SdkProxyAdmin.ServersUnregister("lobby"));
-        SayInt("unregister none: ", SdkProxyAdmin.ServersUnregister("never"));
-        SdkProxyAdmin.DataSetInt(null, "visits", 5);
-        SdkProxyAdmin.DataSetStr(null, "label", "hello");
-        SdkProxyAdmin.DataSetInt("OfflineHolder", "coins", 42);
-        SdkProxyAdmin.DataSetFloat("OfflineHolder", "ratio", 2.5);
-        if (SdkProxyAdmin.DataValue("OfflineHolder", "coins", out Value coins))
+        Management.PermissionProvide(OnCheck, OnMeta);
+        Management.PermissionChanged();
+        SayInt("register extra: ", Management.ServersRegister("extra", "127.0.0.1", 25599, "lobby", out _));
+        SayInt("register again: ", Management.ServersRegister("extra", "127.0.0.1", 25599, "lobby", out _));
+        SayInt("register bad port: ", Management.ServersRegister("bad", "127.0.0.1", 0, "", out _));
+        SayInt("unregister extra: ", Management.ServersUnregister("extra"));
+        SayInt("unregister lobby: ", Management.ServersUnregister("lobby"));
+        SayInt("unregister none: ", Management.ServersUnregister("never"));
+        Management.DataSetInt(null, "visits", 5);
+        Management.DataSetStr(null, "label", "hello");
+        Management.DataSetInt("OfflineHolder", "coins", 42);
+        Management.DataSetFloat("OfflineHolder", "ratio", 2.5);
+        if (Management.DataValue("OfflineHolder", "coins", out Value coins))
         {
             coins.TryInt(out long count);
             SayInt("offline coins: ", count);
         }
-        if (SdkProxyAdmin.DataValue("OfflineHolder", "ratio", out Value ratio))
+        if (Management.DataValue("OfflineHolder", "ratio", out Value ratio))
         {
             ratio.TryFloat(out double number);
             SayInt("offline ratio x10: ", (long)(number * 10));
         }
-        SdkProxyAdmin.DataRemove("OfflineHolder", "ratio");
-        SayInt("removed ratio: ", SdkProxyAdmin.DataValue("OfflineHolder", "ratio", out _) ? 0 : -1);
-        SdkCommands.Command("pcon", "", OnConsole);
-        SayInt("console run: ", SdkProxyAdmin.ConsoleRun("pcon"));
-        SdkProxyAdmin.ServersPing("lobby", OnPing);
-        SdkProxyAdmin.Wait(2, OnWait);
-        SdkCommands.Command("padmin", "proxyadmin.granted", OnCommand);
-        SdkCommands.Command("pkick", "proxyadmin.granted", OnKickCommand);
-        SdkCommands.Command("pdenied", "proxyadmin.denied", OnCommand);
+        Management.DataRemove("OfflineHolder", "ratio");
+        SayInt("removed ratio: ", Management.DataValue("OfflineHolder", "ratio", out _) ? 0 : -1);
+        Registry.Register("pcon", "", OnConsole);
+        SayInt("console run: ", Management.ConsoleRun("pcon"));
+        Management.ServersPing("lobby", OnPing);
+        Management.Wait(2, OnWait);
+        Registry.Register("padmin", "proxyadmin.granted", OnCommand);
+        Registry.Register("pkick", "proxyadmin.granted", OnKickCommand);
+        Registry.Register("pdenied", "proxyadmin.denied", OnCommand);
     }
 }

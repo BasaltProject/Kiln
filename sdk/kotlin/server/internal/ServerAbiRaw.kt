@@ -1,9 +1,11 @@
 @file:OptIn(kotlin.wasm.ExperimentalWasmInterop::class)
 
-// Raw imports of the server-only calls of basalt_abi.h.
 package org.basaltmc.server.internal
 
 import kotlin.wasm.WasmImport
+
+// Raw imports of the server-only calls of basalt_abi.h.
+
 
 @WasmImport("basalt", "player_particle")
 internal external fun rawPlayerParticle(player: Int, id: Int, idlen: Int, count: Int, spread: Double): Int

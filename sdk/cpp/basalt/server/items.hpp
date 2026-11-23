@@ -117,4 +117,186 @@ inline int item_set_cooldown(Player player, const char* id, int ticks) { return 
 
 inline bool recipe_known(const char* id) { return bs_recipe_known(id) > 0; }
 
+inline bool recipe_has(const char* id) { return bs_recipe_has(id) == 1; }
+
+inline int recipe_add(const char* id, const char* json) { return bs_recipe_add(id, json); }
+
+inline int recipe_remove(const char* id) { return bs_recipe_remove(id); }
+
+/// Every recipe id, a list of strings; the list is long, so give the reply room.
+template <int N>
+inline int recipe_ids(Reply<N>& reply) {
+    return values::detail::fill_reply(reply,
+                                      [](char* out, int cap, bs_val* raw) { return bs_recipe_ids(out, cap, raw); });
+}
+
+inline int recipe_clear() { return bs_recipe_clear(); }
+
+inline int recipe_reset() { return bs_recipe_reset(); }
+
+inline int recipe_reset_brewing() { return bs_recipe_reset_brewing(); }
+
+template <int N>
+inline int recipe_get(const char* id, Reply<N>& reply) {
+    return values::detail::fill_reply(
+        reply, [&](char* out, int cap, bs_val* raw) { return bs_recipe_get(id, out, cap, raw); });
+}
+
+/// What a station makes: `kind` is "crafting", "anvil" or "smithing" and `input` its document.
+template <int N>
+inline int recipe_station(const char* kind, const ValueWriter& input, Reply<N>& reply) {
+    return values::detail::fill_reply(reply, [&](char* out, int cap, bs_val* raw) {
+        return bs_recipe_station(kind, input.data(), input.finish(), out, cap, raw);
+    });
+}
+
+template <int N>
+inline int recipe_book_get(Player player, Reply<N>& reply) {
+    return values::detail::fill_reply(
+        reply, [&](char* out, int cap, bs_val* raw) { return bs_recipe_book_get(player, out, cap, raw); });
+}
+
+/// `ids` is a list of recipe ids; returns how many changed.
+inline int recipe_book_set(Player player, const ValueWriter& ids, bool learn = true) {
+    return bs_recipe_book_set(player, ids.data(), ids.finish(), learn ? 1 : 0);
+}
+
+inline bool recipe_book_has(Player player, const char* id) { return bs_recipe_book_has(player, id) == 1; }
+
+inline int recipe_book_resend(Player player) { return bs_recipe_book_resend(player); }
+
+inline int merchant_open(Player player, const ValueWriter& spec) {
+    return bs_merchant_open(player, spec.data(), spec.finish());
+}
+
+/// Returns the container id.
+inline int window_open(Player player, const ValueWriter& spec) {
+    return bs_window_open(player, spec.data(), spec.finish());
+}
+
+template <int N>
+inline int window_info(Player player, Reply<N>& reply) {
+    return values::detail::fill_reply(
+        reply, [&](char* out, int cap, bs_val* raw) { return bs_window_info(player, out, cap, raw); });
+}
+
+inline int window_close(Player player) { return bs_window_close(player); }
+
+inline int window_update(Player player, const ValueWriter& spec) {
+    return bs_window_update(player, spec.data(), spec.finish());
+}
+
+inline int container_menu_create(const ValueWriter& spec) {
+    return bs_container_menu_create(spec.data(), spec.finish());
+}
+
+/// Puts an item in a slot; `on_click` runs when a player clicks it.
+inline int container_menu_set(int menu, int slot, const Item& item, Handler on_click = nullptr) {
+    return bs_container_menu_set(menu, slot, item.data(), item.length(), on_click);
+}
+
+inline int container_menu_set(int menu, int slot, const ValueWriter& item, Handler on_click = nullptr) {
+    return bs_container_menu_set(menu, slot, item.data(), item.finish(), on_click);
+}
+
+inline int container_menu_clear_slot(int menu, int slot) {
+    return bs_container_menu_set(menu, slot, nullptr, 0, nullptr);
+}
+
+inline int container_menu_clear(int menu) { return bs_container_menu_clear(menu); }
+
+inline int container_menu_open(int menu, Player player) { return bs_container_menu_open(menu, player); }
+
+inline int container_menu_close(int menu, Player player) { return bs_container_menu_close(menu, player); }
+
+/// Inside a click handler: {player, slot, button, mode}.
+template <int N>
+inline int container_menu_click_info(Ctx ctx, Reply<N>& reply) {
+    return values::detail::fill_reply(
+        reply, [&](char* out, int cap, bs_val* raw) { return bs_container_menu_click_info(ctx, out, cap, raw); });
+}
+
+/// Inside a click handler: replaces the stack shown in the clicked slot.
+inline int container_menu_click_result(Ctx ctx, const Item& item) {
+    return bs_container_menu_click_result(ctx, item.data(), item.length());
+}
+
+inline int container_menu_click_result(Ctx ctx, const ValueWriter& item) {
+    return bs_container_menu_click_result(ctx, item.data(), item.finish());
+}
+
+inline int container_menu_click_clear(Ctx ctx) { return bs_container_menu_click_result(ctx, nullptr, 0); }
+
+inline int container_menu_click_cancel(Ctx ctx, bool cancelled = true) {
+    return bs_container_menu_click_cancel(ctx, cancelled ? 1 : 0);
+}
+
+namespace impl {
+inline const char* data_of(const ValueWriter* doc) { return doc == nullptr ? nullptr : doc->data(); }
+
+inline int length_of(const ValueWriter* doc) { return doc == nullptr ? 0 : doc->finish(); }
+} // namespace impl
+
+template <int N>
+inline int loot_tables(Reply<N>& reply) {
+    return values::detail::fill_reply(reply,
+                                      [](char* out, int cap, bs_val* raw) { return bs_loot_tables(out, cap, raw); });
+}
+
+/// Rolls a loot table into a list of items; `spec` (world, x, y, z, luck, seed, looter) may be null.
+template <int N>
+inline int loot_roll(const char* table, const ValueWriter* spec, Reply<N>& reply) {
+    return values::detail::fill_reply(reply, [&](char* out, int cap, bs_val* raw) {
+        return bs_loot_roll(table, impl::data_of(spec), impl::length_of(spec), out, cap, raw);
+    });
+}
+
+template <int N>
+inline int loot_roll_json(const char* json, const ValueWriter* spec, Reply<N>& reply) {
+    return values::detail::fill_reply(reply, [&](char* out, int cap, bs_val* raw) {
+        return bs_loot_roll_json(json, impl::data_of(spec), impl::length_of(spec), out, cap, raw);
+    });
+}
+
+/// Evaluates a number provider given as JSON text, an int or a float value.
+template <int N>
+inline int loot_number(const char* json, bool as_float, long long seed, Reply<N>& reply) {
+    return values::detail::fill_reply(reply, [&](char* out, int cap, bs_val* raw) {
+        return bs_loot_number(json, as_float ? 1 : 0, seed, out, cap, raw);
+    });
+}
+
+template <int N>
+inline int loot_apply(const ValueWriter& spec, Reply<N>& reply) {
+    return values::detail::fill_reply(reply, [&](char* out, int cap, bs_val* raw) {
+        return bs_loot_apply(spec.data(), spec.finish(), out, cap, raw);
+    });
+}
+
+template <int N>
+inline int loot_enchant(const ValueWriter& spec, Reply<N>& reply) {
+    return values::detail::fill_reply(reply, [&](char* out, int cap, bs_val* raw) {
+        return bs_loot_enchant(spec.data(), spec.finish(), out, cap, raw);
+    });
+}
+
+/// The trades a villager of `profession` offers at `level` (1 to 5); `spec` may be null.
+template <int N>
+inline int trades_roll(const char* profession, int level, const ValueWriter* spec, Reply<N>& reply) {
+    return values::detail::fill_reply(reply, [&](char* out, int cap, bs_val* raw) {
+        return bs_trades_roll(profession, level, impl::data_of(spec), impl::length_of(spec), out, cap, raw);
+    });
+}
+
+/// Registry data by kind ("item", "items", "enchantment", "tags", ...); `key` may be "".
+template <int N>
+inline int registry_get(const char* kind, const char* key, Reply<N>& reply) {
+    return values::detail::fill_reply(
+        reply, [&](char* out, int cap, bs_val* raw) { return bs_registry_get(kind, key, out, cap, raw); });
+}
+
+inline double enchantment_level_value(const ValueWriter& spec, int level) {
+    return bs_enchantment_level_value(spec.data(), spec.finish(), level);
+}
+
 } // namespace basalt::server::items

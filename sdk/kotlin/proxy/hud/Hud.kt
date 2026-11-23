@@ -1,14 +1,16 @@
 @file:OptIn(kotlin.wasm.unsafe.UnsafeWasmMemoryApi::class)
 
-// Proxy hud area (abi/areas/proxy_hud.h): boss bars, sidebar, tab list, tab rows, server links and chat completions.
-// A null optional text leaves that part unchanged; every call answers 0 or a negative code.
 package org.basaltmc.proxy.hud
+
+import kotlin.wasm.unsafe.withScopedMemoryAllocator
 import org.basaltmc.proxy.core.*
 import org.basaltmc.proxy.internal.*
 import org.basaltmc.proxy.values.*
 
+// Proxy hud area (abi/areas/proxy_hud.h): boss bars, sidebar, tab list, tab rows, server links and chat completions.
+// A null optional text leaves that part unchanged; every call answers 0 or a negative code.
 
-import kotlin.wasm.unsafe.withScopedMemoryAllocator
+
 
 private const val INVALID = -3
 

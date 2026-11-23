@@ -24,9 +24,12 @@ static void hello(basalt::proxy::core::Ctx ctx) {
 }
 
 static void announce(basalt::proxy::core::Ctx) {
-    basalt::proxy::core::Player online[64];
-    const int count = basalt::proxy::players::players_online(online, 64);
-    for (int i = 0; i < count && i < 64; ++i) {
+    static basalt::proxy::core::Player online[1024];
+    const int count = basalt::proxy::players::players_online(online, 1024);
+    if (count < 0 || count > 1024) {
+        return;
+    }
+    for (int i = 0; i < count; ++i) {
         basalt::proxy::players::send(online[i], "@announce");
     }
 }

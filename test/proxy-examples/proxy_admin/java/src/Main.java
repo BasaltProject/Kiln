@@ -1,9 +1,10 @@
-import static org.basaltmc.proxy.commands.Commands.command;
-import static org.basaltmc.proxy.commands.Commands.commandSourceName;
-import static org.basaltmc.proxy.log.Log.logInfo;
-import static org.basaltmc.proxy.players.SharedPlayers.playerByName;
-import org.basaltmc.proxy.admin.Admin;
-import org.basaltmc.proxy.values.Values;
+import org.basaltmc.proxy.admin.Management;
+import org.basaltmc.proxy.commands.Registry;
+import org.basaltmc.proxy.values.Documents;
+
+import static org.basaltmc.proxy.commands.Sender.name;
+import static org.basaltmc.proxy.log.Logger.logInfo;
+import static org.basaltmc.proxy.players.Directory.playerByName;
 
 public final class Main {
     private static void sayInt(String label, long number) {
@@ -11,24 +12,24 @@ public final class Main {
     }
 
     private static void onCheck(int ctx) {
-        Values.Value request = Admin.permissionRequest(ctx);
+        Documents.Value request = Management.permissionRequest(ctx);
         if (request == null) {
             return;
         }
         String node = request.find("text").asString();
         if ("proxyadmin.granted".equals(node)) {
-            Admin.permissionAnswer(ctx, 1);
+            Management.permissionAnswer(ctx, 1);
         } else if ("proxyadmin.denied".equals(node)) {
-            Admin.permissionAnswer(ctx, 0);
+            Management.permissionAnswer(ctx, 0);
         }
     }
 
     private static void onMeta(int ctx) {
-        Admin.permissionAnswerText(ctx, "[Admin] ");
+        Management.permissionAnswerText(ctx, "[Admin] ");
     }
 
     private static void onPing(int ctx) {
-        Values.Value root = Admin.completionValue(ctx);
+        Documents.Value root = Management.completionValue(ctx);
         if (root == null) {
             logInfo("ping failed");
             return;
@@ -43,37 +44,37 @@ public final class Main {
 
     private static void onWait(int ctx) {
         logInfo("waited");
-        Values.Value visits = Admin.dataValue(null, "visits");
+        Documents.Value visits = Management.dataValue(null, "visits");
         if (visits != null) {
             sayInt("store visits: ", visits.asLong(0));
         }
-        Values.Value top = Admin.storeTop("visits", 3);
+        Documents.Value top = Management.storeTop("visits", 3);
         if (top != null) {
             sayInt("store top entries: ", top.count());
         }
     }
 
     private static void onCommand(int ctx) {
-        String name = commandSourceName(ctx);
+        String name = name(ctx);
         if (name == null) {
             return;
         }
         int player = playerByName(name);
         logInfo("command by: " + name);
-        Admin.groupSet(name, "vip");
-        String group = Admin.groupGet(name);
+        Management.groupSet(name, "vip");
+        String group = Management.groupGet(name);
         if (group != null) {
             logInfo("group is: " + group);
         }
-        Admin.permissionOverride(name, "proxyadmin.extra", 1);
-        sayInt("override check: ", Admin.permissionCheck(name, "proxyadmin.extra", ""));
-        sayInt("granted check: ", Admin.permissionCheck(name, "proxyadmin.granted", ""));
-        sayInt("denied check: ", Admin.permissionCheck(name, "proxyadmin.denied", ""));
-        Admin.permissionOverride(name, "proxyadmin.extra", -1);
-        sayInt("override removed: ", Admin.permissionCheck(name, "proxyadmin.extra", ""));
-        Admin.playerChat(player, "plain chat from the plugin");
-        Admin.playerSendJson(player, "{\"text\":\"json message\",\"color\":\"green\"}");
-        Admin.dataSetLong(name, "coins", 7);
+        Management.permissionOverride(name, "proxyadmin.extra", 1);
+        sayInt("override check: ", Management.permissionCheck(name, "proxyadmin.extra", ""));
+        sayInt("granted check: ", Management.permissionCheck(name, "proxyadmin.granted", ""));
+        sayInt("denied check: ", Management.permissionCheck(name, "proxyadmin.denied", ""));
+        Management.permissionOverride(name, "proxyadmin.extra", -1);
+        sayInt("override removed: ", Management.permissionCheck(name, "proxyadmin.extra", ""));
+        Management.playerChat(player, "plain chat from the plugin");
+        Management.playerSendJson(player, "{\"text\":\"json message\",\"color\":\"green\"}");
+        Management.dataSetLong(name, "coins", 7);
         logInfo("command done");
     }
 
@@ -82,41 +83,41 @@ public final class Main {
     }
 
     private static void onKickCommand(int ctx) {
-        String name = commandSourceName(ctx);
+        String name = name(ctx);
         if (name != null) {
-            Admin.playerKickJson(playerByName(name), "{\"text\":\"kicked by json\",\"color\":\"red\"}");
+            Management.playerKickJson(playerByName(name), "{\"text\":\"kicked by json\",\"color\":\"red\"}");
         }
     }
 
     public static void init() {
-        Admin.permissionProvide(Main::onCheck, Main::onMeta, 0);
-        Admin.permissionChanged();
-        sayInt("register extra: ", Admin.serversRegister("extra", "127.0.0.1", 25599, "lobby").status);
-        sayInt("register again: ", Admin.serversRegister("extra", "127.0.0.1", 25599, "lobby").status);
-        sayInt("register bad port: ", Admin.serversRegister("bad", "127.0.0.1", 0, "").status);
-        sayInt("unregister extra: ", Admin.serversUnregister("extra"));
-        sayInt("unregister lobby: ", Admin.serversUnregister("lobby"));
-        sayInt("unregister none: ", Admin.serversUnregister("never"));
-        Admin.dataSetLong(null, "visits", 5);
-        Admin.dataSetStr(null, "label", "hello");
-        Admin.dataSetLong("OfflineHolder", "coins", 42);
-        Admin.dataSetDouble("OfflineHolder", "ratio", 2.5);
-        Values.Value coins = Admin.dataValue("OfflineHolder", "coins");
+        Management.permissionProvide(Main::onCheck, Main::onMeta, 0);
+        Management.permissionChanged();
+        sayInt("register extra: ", Management.serversRegister("extra", "127.0.0.1", 25599, "lobby").status);
+        sayInt("register again: ", Management.serversRegister("extra", "127.0.0.1", 25599, "lobby").status);
+        sayInt("register bad port: ", Management.serversRegister("bad", "127.0.0.1", 0, "").status);
+        sayInt("unregister extra: ", Management.serversUnregister("extra"));
+        sayInt("unregister lobby: ", Management.serversUnregister("lobby"));
+        sayInt("unregister none: ", Management.serversUnregister("never"));
+        Management.dataSetLong(null, "visits", 5);
+        Management.dataSetStr(null, "label", "hello");
+        Management.dataSetLong("OfflineHolder", "coins", 42);
+        Management.dataSetDouble("OfflineHolder", "ratio", 2.5);
+        Documents.Value coins = Management.dataValue("OfflineHolder", "coins");
         if (coins != null) {
             sayInt("offline coins: ", coins.asLong(0));
         }
-        Values.Value ratio = Admin.dataValue("OfflineHolder", "ratio");
+        Documents.Value ratio = Management.dataValue("OfflineHolder", "ratio");
         if (ratio != null) {
             sayInt("offline ratio x10: ", (long) (ratio.asDouble(0) * 10));
         }
-        Admin.dataRemove("OfflineHolder", "ratio");
-        sayInt("removed ratio: ", Admin.dataValue("OfflineHolder", "ratio") == null ? -1 : 0);
-        command("pcon", "", Main::onConsole);
-        sayInt("console run: ", Admin.consoleRun("pcon"));
-        Admin.serversPing("lobby", Main::onPing);
-        Admin.waitTicks(2, Main::onWait);
-        command("padmin", "proxyadmin.granted", Main::onCommand);
-        command("pkick", "proxyadmin.granted", Main::onKickCommand);
-        command("pdenied", "proxyadmin.denied", Main::onCommand);
+        Management.dataRemove("OfflineHolder", "ratio");
+        sayInt("removed ratio: ", Management.dataValue("OfflineHolder", "ratio") == null ? -1 : 0);
+        Registry.register("pcon", "", Main::onConsole);
+        sayInt("console run: ", Management.consoleRun("pcon"));
+        Management.serversPing("lobby", Main::onPing);
+        Management.waitTicks(2, Main::onWait);
+        Registry.register("padmin", "proxyadmin.granted", Main::onCommand);
+        Registry.register("pkick", "proxyadmin.granted", Main::onKickCommand);
+        Registry.register("pdenied", "proxyadmin.denied", Main::onCommand);
     }
 }

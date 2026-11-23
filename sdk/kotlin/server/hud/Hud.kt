@@ -1,14 +1,16 @@
 @file:OptIn(kotlin.wasm.unsafe.UnsafeWasmMemoryApi::class, kotlin.wasm.ExperimentalWasmInterop::class)
 
-// HUD area (abi/areas/hud.h): scoreboards, boss bars, holograms, NPCs, tab and chat surfaces. Specs are encoded values;
-// an out array receives an encoded value (UTF-8 text for team and display lookups).
 package org.basaltmc.server.hud
+
+import kotlin.wasm.unsafe.withScopedMemoryAllocator
 import org.basaltmc.server.core.*
 import org.basaltmc.server.internal.*
 import org.basaltmc.server.values.*
 
+// HUD area (abi/areas/hud.h): scoreboards, boss bars, holograms, NPCs, tab and chat surfaces. Specs are encoded values;
+// an out array receives an encoded value (UTF-8 text for team and display lookups).
 
-import kotlin.wasm.unsafe.withScopedMemoryAllocator
+
 
 fun scoreboardMain(): Int = withScopedMemoryAllocator { a ->
     val status = rawHudScoreboardMain()

@@ -1,4 +1,5 @@
 namespace Basalt.Proxy.Core;
+
 public static class Level {
     public const int Debug = 0, Info = 1, Warn = 2, Error = 3;
 }

@@ -30,6 +30,17 @@ int bs_format_i64(int64_t value, char *out);
 /* The token a callback registered by a wrapper is called with; negative when the handler table is full. */
 int bs_token_for(bs_handler handler);
 
+/* Tokens of callbacks that run once: the slot is freed after the callback ran (or the request was cancelled) and
+ * reused. Take the token, call the import with it, then pass the import's result through bs_once_bind with the kind
+ * of handle it returned (a negative result frees the slot at once). A NULL handler gives token 0. */
+#define BS_ONCE_TASK 1
+#define BS_ONCE_REQUEST 2
+int bs_once_token(bs_handler handler);
+int bs_once_bind(int token, int kind, int handle);
+
+/* Drops a pending request (a wait, a lookup, a service call, a world request) so its callback never runs. */
+int bs_request_cancel(int request);
+
 #ifdef __cplusplus
 }
 #endif

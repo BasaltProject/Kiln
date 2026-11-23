@@ -1,13 +1,14 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Runtime.InteropServices;
 using Basalt.Server.Core;
 using Basalt.Server.Internal;
 using Basalt.Server.Values;
-using static Basalt.Server.Internal.Native;
+using System;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using System.Text;
 using static Basalt.Server.Core.Level;
 using static Basalt.Server.Core.Priority;
+using static Basalt.Server.Internal.Native;
+
 namespace Basalt.Server.Values;
 
 // Value builder and reader over the byte format of basalt_values.h. The writer grows a heap buffer (an optional limit

@@ -46,14 +46,15 @@ static inline int bs_proxy_servers_unregister(const char *name) {
 
 /* Starts a ping of a backend; handler runs with the answer, see bs_proxy_completion_value. Returns the request. */
 static inline int bs_proxy_servers_ping(const char *name, bs_handler handler) {
-    const int token = bs_token_for(handler);
-    return token < 0 ? BASALT_ERR_INVALID : basalt_proxy_servers_ping(name, bs_pa_length(name), token);
+    const int token = bs_once_token(handler);
+    return token < 0 ? BASALT_ERR_INVALID
+                     : bs_once_bind(token, BS_ONCE_REQUEST, basalt_proxy_servers_ping(name, bs_pa_length(name), token));
 }
 
 /* Runs handler after `ticks` ticks of 50 ms. Returns the request. */
 static inline int bs_proxy_wait(int ticks, bs_handler handler) {
-    const int token = bs_token_for(handler);
-    return token < 0 ? BASALT_ERR_INVALID : basalt_proxy_wait(ticks, token);
+    const int token = bs_once_token(handler);
+    return token < 0 ? BASALT_ERR_INVALID : bs_once_bind(token, BS_ONCE_REQUEST, basalt_proxy_wait(ticks, token));
 }
 
 static inline int32_t bs_pa_result_fn(void *user, char *out, int32_t cap) {

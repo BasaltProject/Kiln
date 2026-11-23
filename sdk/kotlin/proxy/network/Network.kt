@@ -1,15 +1,17 @@
 @file:OptIn(kotlin.wasm.unsafe.UnsafeWasmMemoryApi::class, kotlin.wasm.ExperimentalWasmInterop::class)
 
-// Proxy network area (abi/areas/proxy_network.h): messaging channels, raw packets and antibot control. The calls that
-// answer a value return its raw encoded bytes for the values reader, or null on a negative code.
 package org.basaltmc.proxy.network
+
+import kotlin.wasm.unsafe.MemoryAllocator
+import kotlin.wasm.unsafe.withScopedMemoryAllocator
 import org.basaltmc.proxy.core.*
 import org.basaltmc.proxy.internal.*
 import org.basaltmc.proxy.values.*
 
+// Proxy network area (abi/areas/proxy_network.h): messaging channels, raw packets and antibot control. The calls that
+// answer a value return its raw encoded bytes for the values reader, or null on a negative code.
 
-import kotlin.wasm.unsafe.MemoryAllocator
-import kotlin.wasm.unsafe.withScopedMemoryAllocator
+
 
 private inline fun netFetch(call: MemoryAllocator.(Int, Int) -> Int): ByteArray? {
     var cap = 256

@@ -1,11 +1,13 @@
-// Handles, log levels, listener priorities, text arguments and the callback entry of the plugin ABI.
 package org.basaltmc.shared.core
+
 import org.basaltmc.shared.core.*
 import org.basaltmc.shared.internal.*
+import org.basaltmc.shared.internal.handlers
 import org.basaltmc.shared.values.*
 
+// Handles, log levels, listener priorities, text arguments and the callback entry of the plugin ABI.
 
-import org.basaltmc.shared.internal.handlers
+
 
 typealias Player = Int
 typealias Ctx = Int

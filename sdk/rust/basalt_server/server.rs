@@ -21,14 +21,19 @@ fn p(text: &str) -> (*const u8, i32) {
     (text.as_ptr(), text.len() as i32)
 }
 
-fn fill(cap: usize, call: impl FnOnce(*mut u8, i32) -> i32) -> Result<String, i32> {
+fn fill(cap: usize, call: impl Fn(*mut u8, i32) -> i32) -> Result<String, i32> {
     let mut buffer = vec![0u8; cap];
-    let n = call(buffer.as_mut_ptr(), cap as i32);
-    if n < 0 {
-        return Err(n);
+    loop {
+        let n = call(buffer.as_mut_ptr(), buffer.len() as i32);
+        if n < 0 {
+            return Err(n);
+        }
+        if n as usize <= buffer.len() {
+            buffer.truncate(n as usize);
+            return Ok(String::from_utf8_lossy(&buffer).into_owned());
+        }
+        buffer.resize(n as usize, 0);
     }
-    buffer.truncate((n as usize).min(cap));
-    Ok(String::from_utf8_lossy(&buffer).into_owned())
 }
 
 /// The import status of a call: 0 for an answer, the negative error otherwise.

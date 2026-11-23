@@ -1,15 +1,13 @@
 @file:OptIn(kotlin.wasm.unsafe.UnsafeWasmMemoryApi::class)
 
 package org.basaltmc.shared.players
-import org.basaltmc.shared.core.*
-import org.basaltmc.shared.internal.*
-import org.basaltmc.shared.values.*
-
 
 import kotlin.wasm.unsafe.withScopedMemoryAllocator
+import org.basaltmc.shared.core.*
 import org.basaltmc.shared.core.Args
 import org.basaltmc.shared.core.Player
 import org.basaltmc.shared.internal.*
+import org.basaltmc.shared.values.*
 
 fun playerByName(name: String): Player = withScopedMemoryAllocator { a -> val n = a.str(name); rawPlayerByName(n.ptr, n.len) }
 fun playersOnline(): List<Player> {

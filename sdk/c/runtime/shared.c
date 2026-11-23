@@ -8,6 +8,7 @@
 #include "basalt/internal/players.h"
 #include "basalt/internal/tasks.h"
 #include "basalt/internal/text.h"
+#include "areas/core_values.h"
 
 #define kMaxHandlers 1024
 
@@ -58,18 +59,56 @@ __attribute__((no_builtin("memcmp"))) int memcmp(const void *a, const void *b, s
     return 0;
 }
 
+#define kSlotShift 10
+#define kOncePending 3
+
 static bs_handler handlers[kMaxHandlers];
+static unsigned char once_kind[kMaxHandlers];
+static int32_t once_handle[kMaxHandlers];
+static unsigned short generation[kMaxHandlers];
+static int free_slots[kMaxHandlers];
+static int free_count = 0;
 static int handler_count = 0;
 
-static int token_for(bs_handler handler) {
-    if (handler == 0) {
-        return 0;
-    }
-    if (handler_count >= kMaxHandlers) {
+static int take_slot(bs_handler handler, int kind) {
+    int slot;
+    if (free_count > 0) {
+        slot = free_slots[--free_count];
+    } else if (handler_count < kMaxHandlers) {
+        slot = handler_count++;
+    } else {
         return -1;
     }
-    handlers[handler_count] = handler;
-    return ++handler_count;
+    handlers[slot] = handler;
+    once_kind[slot] = (unsigned char)kind;
+    once_handle[slot] = 0;
+    return (((int)generation[slot] << kSlotShift) | slot) + 1;
+}
+
+static void free_slot(int slot) {
+    handlers[slot] = 0;
+    once_kind[slot] = 0;
+    generation[slot]++;
+    free_slots[free_count++] = slot;
+}
+
+static int find_slot(int token) {
+    if (token <= 0) {
+        return -1;
+    }
+    const int slot = (token - 1) & (kMaxHandlers - 1);
+    return handlers[slot] != 0 && ((token - 1) >> kSlotShift) == generation[slot] ? slot : -1;
+}
+
+static int token_for(bs_handler handler) { return handler == 0 ? 0 : take_slot(handler, 0); }
+
+static void release_once(int kind, int handle) {
+    for (int slot = 0; slot < handler_count; ++slot) {
+        if (handlers[slot] != 0 && once_kind[slot] == kind && once_handle[slot] == handle) {
+            free_slot(slot);
+            return;
+        }
+    }
 }
 
 BASALT_EXPORT(basalt_abi_version) int32_t basalt_abi_version(void) { return BASALT_ABI_VERSION; }
@@ -77,9 +116,15 @@ BASALT_EXPORT(basalt_abi_version) int32_t basalt_abi_version(void) { return BASA
 BASALT_EXPORT(basalt_init) void basalt_init(void) { plugin_init(); }
 
 BASALT_EXPORT(basalt_callback) void basalt_callback(int32_t token, int32_t ctx) {
-    if (token > 0 && token <= handler_count) {
-        handlers[token - 1](ctx);
+    const int slot = find_slot(token);
+    if (slot < 0) {
+        return;
     }
+    const bs_handler handler = handlers[slot];
+    if (once_kind[slot] != 0) {
+        free_slot(slot);
+    }
+    handler(ctx);
 }
 
 static void put_u32(char *at, int32_t value) {
@@ -184,6 +229,30 @@ int bs_data_remove(bs_player player, const char *key) { return basalt_data_remov
 
 int bs_token_for(bs_handler handler) { return token_for(handler); }
 
+int bs_once_token(bs_handler handler) { return handler == 0 ? 0 : take_slot(handler, kOncePending); }
+
+int bs_once_bind(int token, int kind, int handle) {
+    const int slot = find_slot(token);
+    if (slot < 0 || once_kind[slot] == 0) {
+        return handle;
+    }
+    if (handle < 0) {
+        free_slot(slot);
+    } else {
+        once_kind[slot] = (unsigned char)kind;
+        once_handle[slot] = handle;
+    }
+    return handle;
+}
+
+int bs_request_cancel(int request) {
+    const int result = basalt_request_cancel(request);
+    if (result == BASALT_OK) {
+        release_once(BS_ONCE_REQUEST, request);
+    }
+    return result;
+}
+
 int bs_on(const char *event, int priority, bs_handler handler) {
     const int token = token_for(handler);
     return token < 0 ? BASALT_ERR_INVALID : basalt_event_on(event, bs_length(event), priority, token);
@@ -223,8 +292,8 @@ int bs_command_source_name(bs_ctx ctx, char *out, int cap) { return basalt_comma
 int bs_command_is_console(bs_ctx ctx) { return basalt_command_is_console(ctx); }
 
 int bs_after(int delay, bs_handler handler) {
-    const int token = token_for(handler);
-    return token < 0 ? BASALT_ERR_INVALID : basalt_task_after(delay, token);
+    const int token = bs_once_token(handler);
+    return token < 0 ? BASALT_ERR_INVALID : bs_once_bind(token, BS_ONCE_TASK, basalt_task_after(delay, token));
 }
 
 int bs_every(int delay, int period, bs_handler handler) {
@@ -232,4 +301,10 @@ int bs_every(int delay, int period, bs_handler handler) {
     return token < 0 ? BASALT_ERR_INVALID : basalt_task_every(delay, period, token);
 }
 
-int bs_task_cancel(int task) { return basalt_task_cancel(task); }
+int bs_task_cancel(int task) {
+    const int result = basalt_task_cancel(task);
+    if (result == BASALT_OK) {
+        release_once(BS_ONCE_TASK, task);
+    }
+    return result;
+}

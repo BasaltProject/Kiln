@@ -22,9 +22,10 @@
 
 ## About
 
-Kiln is the command line for writing plugins in C, C++, Zig, Rust, AssemblyScript, Go (TinyGo), Kotlin or C#. It
+Kiln is the command line for writing plugins in C, C++, Zig, Rust, AssemblyScript, Go (TinyGo), Kotlin, C# or Java. It
 downloads the compiler a language needs the first time, checks the result against the plugin ABI without running it
-and packs `.bspkg` (`.bppkg` for the proxy). See `docs/` for the languages and the toolchain cache.
+and packs `.bspkg` (`.bppkg` for the proxy). The languages and the toolchain cache are covered in the
+[documentation](https://basaltmc.org/docs/server/wasm-kiln).
 
 ```
 kiln new <id> [name] --lang <language>   create a new plugin (--target proxy for the proxy)

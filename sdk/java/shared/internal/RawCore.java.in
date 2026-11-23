@@ -1,4 +1,5 @@
 package org.basaltmc.shared.internal;
+
 import org.teavm.interop.Address;
 import org.teavm.interop.Import;
 

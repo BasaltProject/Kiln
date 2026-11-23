@@ -1,13 +1,12 @@
+using Basalt.Proxy.Commands;
+using Basalt.Proxy.Config;
 using Basalt.Proxy.Core;
+using Basalt.Proxy.Data;
+using Basalt.Proxy.Events;
+using Basalt.Proxy.Log;
+using Basalt.Proxy.Players;
+using Basalt.Proxy.Tasks;
 using Basalt.Proxy.Values;
-using LegacyPlayers = global::Basalt.Proxy.Players.Players;
-using SdkCommands = global::Basalt.Proxy.Commands.Commands;
-using SdkConfig = global::Basalt.Proxy.Config.Config;
-using SdkData = global::Basalt.Proxy.Data.Data;
-using SdkEvents = global::Basalt.Proxy.Events.Events;
-using SdkLogger = global::Basalt.Proxy.Log.Logger;
-using SdkPlayers = global::Basalt.Proxy.Players.Players;
-using SdkTasks = global::Basalt.Proxy.Tasks.Tasks;
 
 namespace Basalt.Proxy.Example;
 
@@ -15,36 +14,36 @@ public static class Plugin
 {
     static void OnJoin(int ctx)
     {
-        int player = SdkEvents.EventPlayer(ctx);
+        int player = EventBus.EventPlayer(ctx);
         if (player == 0)
         {
             return;
         }
-        long visits = SdkData.DataGetI64(player, "visits", 0) + 1;
-        SdkData.DataSetI64(player, "visits", visits);
-        SdkPlayers.Send(player, "@welcome", new Args().Add("name", SdkPlayers.PlayerName(player) ?? "").Add("visits", visits.ToString()));
-        LegacyPlayers.PlayerTitle(player, "<gold>Welcome", "<gray>Have fun");
+        long visits = PlayerStore.DataGetI64(player, "visits", 0) + 1;
+        PlayerStore.DataSetI64(player, "visits", visits);
+        Directory.Send(player, "@welcome", new Args().Add("name", Directory.PlayerName(player) ?? "").Add("visits", visits.ToString()));
+        Directory.PlayerTitle(player, "<gold>Welcome", "<gray>Have fun");
     }
 
     static void Hello(int ctx)
     {
-        int player = SdkEvents.EventPlayer(ctx);
-        string server = player == 0 ? "console" : LegacyPlayers.PlayerServer(player) ?? "";
-        SdkCommands.CommandReply(ctx, "@hello", new Args().Add("name", SdkCommands.CommandSourceName(ctx) ?? "").Add("server", server));
+        int player = EventBus.EventPlayer(ctx);
+        string server = player == 0 ? "console" : Directory.PlayerServer(player) ?? "";
+        Sender.Reply(ctx, "@hello", new Args().Add("name", Sender.Name(ctx) ?? "").Add("server", server));
     }
 
     public static void Init()
     {
-        SdkLogger.LogInfo("starting up");
-        SdkEvents.On("player.join", Priority.Normal, OnJoin);
-        SdkCommands.Command("@ID@ hello", "", Hello);
+        Logger.LogInfo("starting up");
+        EventBus.On("player.join", Priority.Normal, OnJoin);
+        Registry.Register("@ID@ hello", "", Hello);
 
-        int period = (int)SdkConfig.ConfigI64("announce-period", 1200);
-        SdkTasks.Every(period, period, ctx =>
+        int period = (int)Settings.ConfigI64("announce-period", 1200);
+        Scheduler.Every(period, period, ctx =>
         {
-            foreach (int player in SdkPlayers.PlayersOnline())
+            foreach (int player in Directory.PlayersOnline())
             {
-                SdkPlayers.Send(player, "@announce");
+                Directory.Send(player, "@announce");
             }
         });
     }

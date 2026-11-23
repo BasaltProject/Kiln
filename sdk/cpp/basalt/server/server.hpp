@@ -10,22 +10,7 @@ namespace basalt::server::server {
 using namespace basalt::server::core;
 using namespace basalt::server::values;
 
-/// An answer value in inline storage: `value` reads it once the call that filled it returned 0.
-template <int N = BS_SERVER_BUFFER>
-struct Reply {
-    char data[N];
-    Value value;
-};
-
-namespace impl {
-template <typename Call>
-int fill_reply(Reply<>& reply, Call call) {
-    bs_val raw;
-    const int rc = call(reply.data, static_cast<int>(sizeof reply.data), &raw);
-    reply.value = Value{raw};
-    return rc;
-}
-} // namespace impl
+static_assert(BS_SERVER_BUFFER == 1024, "the default Reply size of values.hpp is the old server buffer");
 
 constexpr int kBroadcastPlayers = BS_BROADCAST_PLAYERS;
 constexpr int kBroadcastConsole = BS_BROADCAST_CONSOLE;
@@ -49,6 +34,10 @@ inline Text<128> permission_meta(const char* subject, const char* key) {
 inline int permission_provide(int priority, int kinds, Handler handler) {
     return bs_permission_provide(priority, kinds, handler);
 }
+
+inline int permission_provider_remove(int provider) { return bs_permission_provider_remove(provider); }
+
+inline int permission_changed() { return bs_permission_changed(); }
 
 inline int permission_answer(Ctx ctx, int answer) { return basalt_permission_answer(ctx, answer); }
 
@@ -90,6 +79,16 @@ inline int command_arg_f64(Ctx ctx, const char* name, double* out) { return bs_c
 
 inline int command_arg_bool(Ctx ctx, const char* name, int* out) { return bs_command_arg_bool(ctx, name, out); }
 
+/// Who ran the command: a map {name, console, kind, world, x, y, z, caller}.
+template <int N>
+inline int command_source(Ctx ctx, Reply<N>& reply) {
+    return values::detail::fill_reply(
+        reply, [&](char* out, int cap, bs_val* raw) { return bs_command_source(ctx, out, cap, raw); });
+}
+
+/// The player handle of the sender, 0 for the console or a sender that is not an online player.
+inline Player command_source_player(Ctx ctx) { return bs_command_source_player(ctx); }
+
 inline int broadcast(const char* text, const Args* args, int flags) {
     return bs_broadcast(text, core::detail::raw(args), flags);
 }
@@ -98,13 +97,15 @@ inline Text<256> placeholder_fill(const char* text, Player player = 0) {
     return core::detail::fill<256>([&](char* out, int cap) { return bs_placeholder_fill(text, player, out, cap); });
 }
 
-inline int info(Reply<>& reply) {
-    return impl::fill_reply(reply,
-                            [](char* out, int cap, bs_val* raw) { return bs_server_info(out, cap, nullptr, 0, raw); });
+template <int N>
+inline int info(Reply<N>& reply) {
+    return values::detail::fill_reply(
+        reply, [](char* out, int cap, bs_val* raw) { return bs_server_info(out, cap, nullptr, 0, raw); });
 }
 
-inline int call(const char* op, const ValueWriter* args, Reply<>& reply) {
-    return impl::fill_reply(reply, [&](char* out, int cap, bs_val* raw) {
+template <int N>
+inline int call(const char* op, const ValueWriter* args, Reply<N>& reply) {
+    return values::detail::fill_reply(reply, [&](char* out, int cap, bs_val* raw) {
         return bs_server_call(op, args == nullptr ? nullptr : args->data(), args == nullptr ? 0 : args->finish(), out,
                               cap, nullptr, 0, raw);
     });
@@ -112,8 +113,10 @@ inline int call(const char* op, const ValueWriter* args, Reply<>& reply) {
 
 inline int profile_lookup(const char* name, Handler handler) { return bs_profile_lookup(name, handler); }
 
-inline int result(Ctx ctx, Reply<>& reply) {
-    return impl::fill_reply(reply, [&](char* out, int cap, bs_val* raw) { return bs_result(ctx, out, cap, raw); });
+template <int N>
+inline int result(Ctx ctx, Reply<N>& reply) {
+    return values::detail::fill_reply(reply,
+                                      [&](char* out, int cap, bs_val* raw) { return bs_result(ctx, out, cap, raw); });
 }
 
 inline int file_read(const char* path, char* out, int cap) { return bs_file_read(path, out, cap); }
@@ -124,38 +127,60 @@ inline bool file_exists(const char* path) { return bs_file_exists(path) == 1; }
 
 inline int file_delete(const char* path, bool recursive = false) { return bs_file_delete(path, recursive ? 1 : 0); }
 
-inline int file_list(const char* prefix, Reply<>& reply) {
-    return impl::fill_reply(reply,
-                            [&](char* out, int cap, bs_val* raw) { return bs_file_list(prefix, out, cap, raw); });
+template <int N>
+inline int file_list(const char* prefix, Reply<N>& reply) {
+    return values::detail::fill_reply(
+        reply, [&](char* out, int cap, bs_val* raw) { return bs_file_list(prefix, out, cap, raw); });
 }
 
-inline int file_stat(const char* path, Reply<>& reply) {
-    return impl::fill_reply(reply, [&](char* out, int cap, bs_val* raw) { return bs_file_stat(path, out, cap, raw); });
+template <int N>
+inline int file_stat(const char* path, Reply<N>& reply) {
+    return values::detail::fill_reply(
+        reply, [&](char* out, int cap, bs_val* raw) { return bs_file_stat(path, out, cap, raw); });
 }
 
-inline int file_walk(const char* path, Reply<>& reply) {
-    return impl::fill_reply(reply, [&](char* out, int cap, bs_val* raw) { return bs_file_walk(path, out, cap, raw); });
+template <int N>
+inline int file_walk(const char* path, Reply<N>& reply) {
+    return values::detail::fill_reply(
+        reply, [&](char* out, int cap, bs_val* raw) { return bs_file_walk(path, out, cap, raw); });
 }
 
 inline int store_set(const char* key, long long value) { return bs_store_set_i64(key, value); }
 
 inline int store_set(const char* key, const char* value) { return bs_store_set_str(key, value); }
 
-inline int store_get(const char* key, Reply<>& reply) {
-    return impl::fill_reply(reply, [&](char* out, int cap, bs_val* raw) { return bs_store_get(key, out, cap, raw); });
+inline int store_set_f64(const char* key, double value) { return bs_store_set_f64(key, value); }
+
+inline int store_set_bool(const char* key, bool value) { return bs_store_set_bool(key, value ? 1 : 0); }
+
+inline int store_set_null(const char* key) { return bs_store_set_null(key); }
+
+template <int N>
+inline int store_get(const char* key, Reply<N>& reply) {
+    return values::detail::fill_reply(
+        reply, [&](char* out, int cap, bs_val* raw) { return bs_store_get(key, out, cap, raw); });
 }
 
 inline int data_write(const char* name, const ValueWriter& doc) {
     return bs_data_write(name, doc.data(), doc.finish());
 }
 
-inline int data_read(const char* name, Reply<>& reply) {
-    return impl::fill_reply(reply, [&](char* out, int cap, bs_val* raw) { return bs_data_read(name, out, cap, raw); });
+template <int N>
+inline int data_read(const char* name, Reply<N>& reply) {
+    return values::detail::fill_reply(
+        reply, [&](char* out, int cap, bs_val* raw) { return bs_data_read(name, out, cap, raw); });
 }
 
-inline int config_value(const char* key, Reply<>& reply) {
-    return impl::fill_reply(reply,
-                            [&](char* out, int cap, bs_val* raw) { return bs_config_value(key, out, cap, raw); });
+template <int N>
+inline int config_value(const char* key, Reply<N>& reply) {
+    return values::detail::fill_reply(
+        reply, [&](char* out, int cap, bs_val* raw) { return bs_config_value(key, out, cap, raw); });
+}
+
+template <int N>
+inline int file_capabilities(const char* path, Reply<N>& reply) {
+    return values::detail::fill_reply(
+        reply, [&](char* out, int cap, bs_val* raw) { return bs_file_capabilities(path, out, cap, raw); });
 }
 
 inline int service_register(const char* name, Handler handler) { return bs_service_register(name, handler); }
@@ -165,6 +190,14 @@ inline int service_reply(Ctx ctx, const ValueWriter& doc) { return bs_service_re
 inline int service_reply_null(Ctx ctx) { return bs_service_reply(ctx, nullptr, 0); }
 
 inline bool service_has(const char* name) { return bs_service_has(name) == 1; }
+
+inline int service_remove(int service) { return bs_service_remove(service); }
+
+template <int N>
+inline int service_list(Reply<N>& reply) {
+    return values::detail::fill_reply(reply,
+                                      [](char* out, int cap, bs_val* raw) { return bs_service_list(out, cap, raw); });
+}
 
 inline int service_call(const char* name, const ValueWriter& args, int timeout, Handler handler) {
     return bs_service_call(name, args.data(), args.finish(), timeout, handler);

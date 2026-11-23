@@ -225,7 +225,23 @@ inline bool ValueIter::next(const char*& key, int& key_length, Value& item) {
     return true;
 }
 
+/// An answer value in inline storage: `value` reads it once the call that filled it returned 0. N is the room the
+/// answer may take; a call whose answer needs more fails with an invalid error, so pick a bigger N for big answers.
+template <int N = 1024>
+struct Reply {
+    char data[N];
+    Value value;
+};
+
 namespace detail {
+template <int N, typename Call>
+int fill_reply(Reply<N>& reply, Call call) {
+    bs_val raw;
+    const int rc = call(reply.data, N, &raw);
+    reply.value = Value{raw};
+    return rc;
+}
+
 template <typename Call>
 int32_t trampoline(void* user, char* out, int32_t cap) {
     return (*static_cast<Call*>(user))(out, cap);

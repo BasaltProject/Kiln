@@ -1,14 +1,12 @@
 @file:OptIn(kotlin.wasm.unsafe.UnsafeWasmMemoryApi::class)
 
 package org.basaltmc.proxy.data
-import org.basaltmc.proxy.core.*
-import org.basaltmc.proxy.internal.*
-import org.basaltmc.proxy.values.*
-
 
 import kotlin.wasm.unsafe.withScopedMemoryAllocator
+import org.basaltmc.proxy.core.*
 import org.basaltmc.proxy.core.Player
 import org.basaltmc.proxy.internal.*
+import org.basaltmc.proxy.values.*
 
 fun dataGetI64(player: Player, key: String, def: Long): Long =
     withScopedMemoryAllocator { a -> val k = a.str(key); rawDataGetI64(player, k.ptr, k.len, def) }

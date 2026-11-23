@@ -1,0 +1,19 @@
+package org.basaltmc.shared.tasks;
+
+import org.basaltmc.shared.core.*;
+
+import static org.basaltmc.shared.core.Level.*;
+import static org.basaltmc.shared.core.Priority.*;
+import static org.basaltmc.shared.internal.Callbacks.*;
+import static org.basaltmc.shared.internal.Native.*;
+import static org.basaltmc.shared.internal.RawCore.*;
+
+abstract class SharedScheduler {
+    public static int after(int delay, Handler handler) { return rawTaskAfter(delay, tokenFor(handler)); }
+
+    public static int every(int delay, int period, Handler handler) {
+        return rawTaskEvery(delay, period, tokenFor(handler));
+    }
+
+    public static int taskCancel(int task) { return rawTaskCancel(task); }
+}

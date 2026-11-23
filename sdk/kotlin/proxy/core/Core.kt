@@ -1,11 +1,13 @@
-// Handles, log levels, listener priorities, text arguments and the callback entry of the plugin ABI.
 package org.basaltmc.proxy.core
+
 import org.basaltmc.proxy.core.*
 import org.basaltmc.proxy.internal.*
+import org.basaltmc.proxy.internal.handlers
 import org.basaltmc.proxy.values.*
 
+// Handles, log levels, listener priorities, text arguments and the callback entry of the plugin ABI.
 
-import org.basaltmc.proxy.internal.handlers
+
 
 typealias Player = Int
 typealias Ctx = Int

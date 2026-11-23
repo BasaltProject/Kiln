@@ -1,15 +1,14 @@
 @file:OptIn(kotlin.wasm.unsafe.UnsafeWasmMemoryApi::class)
 
 package org.basaltmc.shared.log
-import org.basaltmc.shared.core.*
-import org.basaltmc.shared.internal.*
-import org.basaltmc.shared.values.*
-
 
 import kotlin.wasm.unsafe.withScopedMemoryAllocator
+import org.basaltmc.shared.core.*
 import org.basaltmc.shared.core.Level
+import org.basaltmc.shared.internal.*
 import org.basaltmc.shared.internal.rawLog
 import org.basaltmc.shared.internal.str
+import org.basaltmc.shared.values.*
 
 fun log(level: Int, msg: String) = withScopedMemoryAllocator { a -> val m = a.str(msg); rawLog(level, m.ptr, m.len) }
 fun logDebug(msg: String) = log(Level.DEBUG, msg)

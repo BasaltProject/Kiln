@@ -1,4 +1,34 @@
+import org.basaltmc.proxy.config.configStr
 import org.basaltmc.proxy.core.Ctx
+import org.basaltmc.proxy.core.Priority
+import org.basaltmc.proxy.events.eventPlayer
+import org.basaltmc.proxy.events.on
+import org.basaltmc.proxy.log.logError
+import org.basaltmc.proxy.log.logInfo
+import org.basaltmc.proxy.network.antibotBan
+import org.basaltmc.proxy.network.antibotEventGet
+import org.basaltmc.proxy.network.antibotIsVerified
+import org.basaltmc.proxy.network.antibotOn
+import org.basaltmc.proxy.network.antibotUnban
+import org.basaltmc.proxy.network.antibotUnderAttack
+import org.basaltmc.proxy.network.antibotUnverify
+import org.basaltmc.proxy.network.antibotVerify
+import org.basaltmc.proxy.network.channelRegister
+import org.basaltmc.proxy.network.channelUnregister
+import org.basaltmc.proxy.network.messageGet
+import org.basaltmc.proxy.network.messageOn
+import org.basaltmc.proxy.network.messageSend
+import org.basaltmc.proxy.network.packetBody
+import org.basaltmc.proxy.network.packetCancel
+import org.basaltmc.proxy.network.packetGet
+import org.basaltmc.proxy.network.packetNames
+import org.basaltmc.proxy.network.packetOn
+import org.basaltmc.proxy.network.packetReceive
+import org.basaltmc.proxy.network.packetRemove
+import org.basaltmc.proxy.network.packetResolve
+import org.basaltmc.proxy.network.packetSend
+import org.basaltmc.proxy.network.packetSetBody
+import org.basaltmc.proxy.network.packetWatch
 import org.basaltmc.proxy.values.Value
 import org.basaltmc.proxy.values.ValueWriter
 
@@ -33,114 +63,114 @@ fun stringPrefixed(first: String, rest: String): ByteArray {
 }
 
 fun onMessage(ctx: Ctx) {
-    val map = org.basaltmc.proxy.network.messageGet(ctx)?.let { Value.open(it) }
+    val map = messageGet(ctx)?.let { Value.open(it) }
     if (map == null) {
-        org.basaltmc.proxy.log.logError("message read failed")
+        logError("message read failed")
         return
     }
     val data = map.find("data")?.asBytes()?.decodeToString() ?: ""
-    org.basaltmc.proxy.log.logInfo("net: message ${text(map, "source")} ${text(map, "channel")} $data")
-    val player = org.basaltmc.proxy.events.eventPlayer(ctx)
-    if (player > 0 && org.basaltmc.proxy.network.messageSend(player, "basalt:demo", "pong".encodeToByteArray(), true) == 0) {
-        org.basaltmc.proxy.log.logInfo("net: reply sent")
+    logInfo("net: message ${text(map, "source")} ${text(map, "channel")} $data")
+    val player = eventPlayer(ctx)
+    if (player > 0 && messageSend(player, "basalt:demo", "pong".encodeToByteArray(), true) == 0) {
+        logInfo("net: reply sent")
     }
 }
 
 fun onDecider(ctx: Ctx) {
-    val map = org.basaltmc.proxy.network.packetGet(ctx)?.let { Value.open(it) }
-    val body = org.basaltmc.proxy.network.packetBody(ctx)
+    val map = packetGet(ctx)?.let { Value.open(it) }
+    val body = packetBody(ctx)
     if (map == null || body == null) {
-        org.basaltmc.proxy.log.logError("packet read failed")
+        logError("packet read failed")
         return
     }
     val at = find(body, rewriteMarker)
     if (find(body, cancelMarker) >= 0) {
-        if (org.basaltmc.proxy.network.packetCancel(ctx) == 0) org.basaltmc.proxy.log.logInfo("net: cancel for ${text(map, "player_name")}")
+        if (packetCancel(ctx) == 0) logInfo("net: cancel for ${text(map, "player_name")}")
     } else if (at >= 0) {
         for (k in 0 until rewriteMarker.encodeToByteArray().size) {
             if (body[at + k] in 'a'.code.toByte()..'z'.code.toByte()) body[at + k] = (body[at + k] - 32).toByte()
         }
-        if (org.basaltmc.proxy.network.packetSetBody(ctx, body) == 0) org.basaltmc.proxy.log.logInfo("net: rewrite for ${text(map, "player_name")}")
+        if (packetSetBody(ctx, body) == 0) logInfo("net: rewrite for ${text(map, "player_name")}")
     }
 }
 
 fun onWatch(ctx: Ctx) {
-    val map = org.basaltmc.proxy.network.packetGet(ctx)?.let { Value.open(it) } ?: return
-    if (!refusedOnce && org.basaltmc.proxy.network.packetCancel(ctx) < 0) {
+    val map = packetGet(ctx)?.let { Value.open(it) } ?: return
+    if (!refusedOnce && packetCancel(ctx) < 0) {
         refusedOnce = true
-        org.basaltmc.proxy.log.logInfo("net: observer cancel refused")
+        logInfo("net: observer cancel refused")
     }
-    if (map.find("cancelled")?.asBool() == true) org.basaltmc.proxy.log.logInfo("net: watch saw a cancelled packet")
+    if (map.find("cancelled")?.asBool() == true) logInfo("net: watch saw a cancelled packet")
 }
 
 fun onAntibot(ctx: Ctx) {
-    val map = org.basaltmc.proxy.network.antibotEventGet(ctx)?.let { Value.open(it) } ?: return
-    org.basaltmc.proxy.log.logInfo("net: antibot ${text(map, "kind")} ${text(map, "action")}")
+    val map = antibotEventGet(ctx)?.let { Value.open(it) } ?: return
+    logInfo("net: antibot ${text(map, "kind")} ${text(map, "action")}")
 }
 
 fun idle(ctx: Ctx) {}
 
 fun onJoin(ctx: Ctx) {
-    val player = org.basaltmc.proxy.events.eventPlayer(ctx)
+    val player = eventPlayer(ctx)
     if (player <= 0) return
     val body = chatBody("net welcome")
-    if (org.basaltmc.proxy.network.packetSend(player, "clientbound.system_chat", body) == 0) org.basaltmc.proxy.log.logInfo("net: sent welcome")
-    if (org.basaltmc.proxy.network.packetSend(player, "serverbound.play.chat_command", body) < 0) {
-        org.basaltmc.proxy.log.logInfo("net: wrong direction refused")
+    if (packetSend(player, "clientbound.system_chat", body) == 0) logInfo("net: sent welcome")
+    if (packetSend(player, "serverbound.play.chat_command", body) < 0) {
+        logInfo("net: wrong direction refused")
     }
-    if (org.basaltmc.proxy.network.messageSend(player, channel, "hello".encodeToByteArray(), true) == 0) {
-        org.basaltmc.proxy.log.logInfo("net: sent hello message")
+    if (messageSend(player, channel, "hello".encodeToByteArray(), true) == 0) {
+        logInfo("net: sent hello message")
     }
-    if (org.basaltmc.proxy.network.packetReceive(player, "serverbound.play.custom_payload", stringPrefixed(channel, "ping")) == 0) {
-        org.basaltmc.proxy.log.logInfo("net: injected custom payload")
+    if (packetReceive(player, "serverbound.play.custom_payload", stringPrefixed(channel, "ping")) == 0) {
+        logInfo("net: injected custom payload")
     }
-    if (org.basaltmc.proxy.network.packetReceive(player, "serverbound.play.chat_command", stringPrefixed("list", "")) == 0) {
-        org.basaltmc.proxy.log.logInfo("net: injected command")
+    if (packetReceive(player, "serverbound.play.chat_command", stringPrefixed("list", "")) == 0) {
+        logInfo("net: injected command")
     }
 }
 
 fun onEnable(ctx: Ctx) {
-    val names = org.basaltmc.proxy.network.packetNames()?.let { Value.open(it) }
-    if (names != null && names.count() > 100) org.basaltmc.proxy.log.logInfo("net: packets known")
-    val resolved = org.basaltmc.proxy.network.packetResolve("clientbound.system_chat")?.let { Value.open(it) }
+    val names = packetNames()?.let { Value.open(it) }
+    if (names != null && names.count() > 100) logInfo("net: packets known")
+    val resolved = packetResolve("clientbound.system_chat")?.let { Value.open(it) }
     if (resolved != null && resolved.find("serverbound")?.asBool() == false) {
-        org.basaltmc.proxy.log.logInfo("net: resolved a clientbound play packet")
+        logInfo("net: resolved a clientbound play packet")
     }
-    if (org.basaltmc.proxy.network.packetResolve("nope.nothing") == null) org.basaltmc.proxy.log.logInfo("net: unknown packet refused")
-    if (org.basaltmc.proxy.network.channelRegister(channel) == 0) org.basaltmc.proxy.log.logInfo("net: channel registered")
-    if (org.basaltmc.proxy.network.channelRegister("BungeeCord") < 0) org.basaltmc.proxy.log.logInfo("net: bungee channel refused")
-    if (org.basaltmc.proxy.network.channelRegister("basalt:temp") == 0 && org.basaltmc.proxy.network.channelUnregister("basalt:temp") == 0 &&
-        org.basaltmc.proxy.network.channelUnregister("basalt:temp") < 0
+    if (packetResolve("nope.nothing") == null) logInfo("net: unknown packet refused")
+    if (channelRegister(channel) == 0) logInfo("net: channel registered")
+    if (channelRegister("BungeeCord") < 0) logInfo("net: bungee channel refused")
+    if (channelRegister("basalt:temp") == 0 && channelUnregister("basalt:temp") == 0 &&
+        channelUnregister("basalt:temp") < 0
     ) {
-        org.basaltmc.proxy.log.logInfo("net: temp channel unregistered")
+        logInfo("net: temp channel unregistered")
     }
-    org.basaltmc.proxy.network.messageOn("basalt:demo", ::onMessage)
+    messageOn("basalt:demo", ::onMessage)
     val opts = ValueWriter().beginMap().key("priority").string("late").key("fail").string("closed").end().finish()
         ?: ByteArray(0)
-    if (org.basaltmc.proxy.network.packetOn("clientbound.system_chat", opts, ::onDecider) > 0) org.basaltmc.proxy.log.logInfo("net: decider listening")
-    org.basaltmc.proxy.network.packetWatch("clientbound.system_chat", ByteArray(0), ::onWatch)
-    val listener = org.basaltmc.proxy.network.packetOn("serverbound.play.*", ByteArray(0), ::idle)
-    if (listener > 0 && org.basaltmc.proxy.network.packetRemove(listener) == 0 && org.basaltmc.proxy.network.packetRemove(listener) < 0) {
-        org.basaltmc.proxy.log.logInfo("net: listener removed")
+    if (packetOn("clientbound.system_chat", opts, ::onDecider) > 0) logInfo("net: decider listening")
+    packetWatch("clientbound.system_chat", ByteArray(0), ::onWatch)
+    val listener = packetOn("serverbound.play.*", ByteArray(0), ::idle)
+    if (listener > 0 && packetRemove(listener) == 0 && packetRemove(listener) < 0) {
+        logInfo("net: listener removed")
     }
-    if (org.basaltmc.proxy.network.packetOn("nope.nothing", ByteArray(0), ::idle) < 0) org.basaltmc.proxy.log.logInfo("net: bad listener name refused")
-    if (org.basaltmc.proxy.network.packetGet(9999) == null) org.basaltmc.proxy.log.logInfo("net: bad context refused")
-    org.basaltmc.proxy.network.antibotOn(::onAntibot)
-    org.basaltmc.proxy.network.antibotVerify("NetBot")
-    org.basaltmc.proxy.log.logInfo(if (org.basaltmc.proxy.network.antibotIsVerified("NetBot") == 1) "net: verified yes" else "net: verified no")
-    org.basaltmc.proxy.network.antibotUnverify("NetBot")
-    org.basaltmc.proxy.log.logInfo(if (org.basaltmc.proxy.network.antibotIsVerified("NetBot") == 0) "net: unverified" else "net: still verified")
-    if (org.basaltmc.proxy.network.antibotBan("203.0.113.9") == 0) org.basaltmc.proxy.log.logInfo("net: ban ok")
-    if (org.basaltmc.proxy.network.antibotUnban("203.0.113.9") == 0) org.basaltmc.proxy.log.logInfo("net: unban ok")
-    if (org.basaltmc.proxy.network.antibotUnban("203.0.113.9") < 0) org.basaltmc.proxy.log.logInfo("net: unban absent")
-    if (org.basaltmc.proxy.network.antibotBan("not an address") < 0) org.basaltmc.proxy.log.logInfo("net: bad address refused")
-    org.basaltmc.proxy.log.logInfo(if (org.basaltmc.proxy.network.antibotUnderAttack() == 0) "net: no attack" else "net: under attack")
+    if (packetOn("nope.nothing", ByteArray(0), ::idle) < 0) logInfo("net: bad listener name refused")
+    if (packetGet(9999) == null) logInfo("net: bad context refused")
+    antibotOn(::onAntibot)
+    antibotVerify("NetBot")
+    logInfo(if (antibotIsVerified("NetBot") == 1) "net: verified yes" else "net: verified no")
+    antibotUnverify("NetBot")
+    logInfo(if (antibotIsVerified("NetBot") == 0) "net: unverified" else "net: still verified")
+    if (antibotBan("203.0.113.9") == 0) logInfo("net: ban ok")
+    if (antibotUnban("203.0.113.9") == 0) logInfo("net: unban ok")
+    if (antibotUnban("203.0.113.9") < 0) logInfo("net: unban absent")
+    if (antibotBan("not an address") < 0) logInfo("net: bad address refused")
+    logInfo(if (antibotUnderAttack() == 0) "net: no attack" else "net: under attack")
 }
 
 fun init() {
-    rewriteMarker = org.basaltmc.proxy.config.configStr("rewrite-marker") ?: ""
-    cancelMarker = org.basaltmc.proxy.config.configStr("cancel-marker") ?: ""
-    channel = org.basaltmc.proxy.config.configStr("channel") ?: ""
-    org.basaltmc.proxy.events.on("plugin.enable", org.basaltmc.proxy.core.Priority.NORMAL, ::onEnable)
-    org.basaltmc.proxy.events.on("player.join", org.basaltmc.proxy.core.Priority.NORMAL, ::onJoin)
+    rewriteMarker = configStr("rewrite-marker") ?: ""
+    cancelMarker = configStr("cancel-marker") ?: ""
+    channel = configStr("channel") ?: ""
+    on("plugin.enable", Priority.NORMAL, ::onEnable)
+    on("player.join", Priority.NORMAL, ::onJoin)
 }

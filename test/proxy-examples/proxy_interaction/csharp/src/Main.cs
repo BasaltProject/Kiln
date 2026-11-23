@@ -1,19 +1,18 @@
-using Basalt.Proxy.Interaction;
+using Basalt.Proxy.Commands;
 using Basalt.Proxy.Core;
+using Basalt.Proxy.Events;
+using Basalt.Proxy.Interaction;
+using Basalt.Proxy.Log;
+using Basalt.Proxy.Players;
+using Basalt.Proxy.Tasks;
 using Basalt.Proxy.Values;
-using LegacyPlayers = global::Basalt.Proxy.Players.Players;
-using SdkCommands = global::Basalt.Proxy.Commands.Commands;
-using SdkEvents = global::Basalt.Proxy.Events.Events;
-using SdkLogger = global::Basalt.Proxy.Log.Logger;
-using SdkProxyInteraction = global::Basalt.Proxy.Interaction.ProxyInteraction;
-using SdkTasks = global::Basalt.Proxy.Tasks.Tasks;
 using System.Text;
 
 public static class Plugin
 {
     static int seen;
 
-    static void Say(string text) => SdkLogger.LogInfo(text);
+    static void Say(string text) => Logger.LogInfo(text);
 
     static bool Ok(int result) => result >= 0;
 
@@ -24,7 +23,7 @@ public static class Plugin
 
     static void OnPackStatus(int ctx)
     {
-        if (!SdkProxyInteraction.TryValueResult(ctx, out Value root))
+        if (!ClientActions.TryValueResult(ctx, out Value root))
         {
             Say("pack event unreadable");
             return;
@@ -35,7 +34,7 @@ public static class Plugin
 
     static void OnSettings(int ctx)
     {
-        if (!SdkProxyInteraction.TryValueResult(ctx, out Value root))
+        if (!ClientActions.TryValueResult(ctx, out Value root))
         {
             Say("settings event unreadable");
             return;
@@ -46,7 +45,7 @@ public static class Plugin
 
     static void OnCookie(int ctx)
     {
-        byte[] cookie = SdkProxyInteraction.CookieResult(ctx);
+        byte[] cookie = ClientActions.CookieResult(ctx);
         if (cookie == null)
         {
             Say("cookie absent");
@@ -59,52 +58,52 @@ public static class Plugin
     static void OnDialogClick(int ctx)
     {
         Say("dialog clicked");
-        SdkCommands.CommandReply(ctx, "<green>dialog clicked");
+        Sender.Reply(ctx, "<green>dialog clicked");
     }
 
     static void OnTransfer(int ctx)
     {
-        int player = SdkEvents.EventPlayer(ctx);
-        Say(Ok(SdkProxyInteraction.PlayerTransfer(player, "127.0.0.1", 25970)) ? "transfer sent" : "transfer failed");
+        int player = EventBus.EventPlayer(ctx);
+        Say(Ok(ClientActions.PlayerTransfer(player, "127.0.0.1", 25970)) ? "transfer sent" : "transfer failed");
     }
 
     static void OnCleanup(int ctx)
     {
-        int player = SdkEvents.EventPlayer(ctx);
-        bool removed = Ok(SdkProxyInteraction.ResourcePackRemove(player, "demo"));
-        bool cleared = Ok(SdkProxyInteraction.ResourcePackClear(player));
-        bool closed = Ok(SdkProxyInteraction.DialogClear(player));
+        int player = EventBus.EventPlayer(ctx);
+        bool removed = Ok(ClientActions.ResourcePackRemove(player, "demo"));
+        bool cleared = Ok(ClientActions.ResourcePackClear(player));
+        bool closed = Ok(ClientActions.DialogClear(player));
         Say(removed && cleared && closed ? "cleanup ok" : "cleanup failed");
     }
 
     static void OnStale(int ctx)
     {
-        Say(SdkProxyInteraction.DialogClear(seen) == -2 ? "stale after quit" : "stale not detected");
+        Say(ClientActions.DialogClear(seen) == -2 ? "stale after quit" : "stale not detected");
     }
 
     static void OnQuit(int ctx)
     {
-        SdkTasks.After(20, OnStale);
+        Scheduler.After(20, OnStale);
     }
 
     static void OnJoin(int ctx)
     {
-        int player = SdkEvents.EventPlayer(ctx);
+        int player = EventBus.EventPlayer(ctx);
         seen = player;
-        Say(SdkProxyInteraction.PlayersCount() >= 1 ? "count ok" : "count failed");
-        Say(SdkProxyInteraction.PlayersCount("lobby") >= 1 ? "count lobby ok" : "count lobby failed");
-        Say(SdkProxyInteraction.PlayersCount("nowhere") == 0 ? "count nowhere ok" : "count nowhere failed");
-        string address = SdkProxyInteraction.PlayerAddress(player);
-        Say(!string.IsNullOrEmpty(address) && SdkProxyInteraction.PlayerPort(player) > 0 ? "address ok" : "address failed");
-        string uuid = LegacyPlayers.PlayerUuid(player) ?? "";
-        Say(SdkProxyInteraction.PlayersByUuid(uuid) == player ? "by uuid ok" : "by uuid failed");
-        Say(SdkProxyInteraction.PlayersByUuid("00000000-0000-0000-0000-000000000000") == 0 ? "by uuid none ok" : "by uuid none failed");
+        Say(ClientActions.PlayersCount() >= 1 ? "count ok" : "count failed");
+        Say(ClientActions.PlayersCount("lobby") >= 1 ? "count lobby ok" : "count lobby failed");
+        Say(ClientActions.PlayersCount("nowhere") == 0 ? "count nowhere ok" : "count nowhere failed");
+        string address = ClientActions.PlayerAddress(player);
+        Say(!string.IsNullOrEmpty(address) && ClientActions.PlayerPort(player) > 0 ? "address ok" : "address failed");
+        string uuid = Directory.PlayerUuid(player) ?? "";
+        Say(ClientActions.PlayersByUuid(uuid) == player ? "by uuid ok" : "by uuid failed");
+        Say(ClientActions.PlayersByUuid("00000000-0000-0000-0000-000000000000") == 0 ? "by uuid none ok" : "by uuid none failed");
 
         DialogButton[] buttons = { new DialogButton("Accept", "pidialog"), new DialogButton("Decline", "pidialog") };
-        Say(Ok(SdkProxyInteraction.DialogShow(player, "multi_action", "<gold>Interaction", "<gray>Pick one", buttons)) ? "dialog ok" : "dialog failed");
-        Say(SdkProxyInteraction.DialogShow(player, "bogus", "x", null, new DialogButton[0]) == -3 ? "bad kind invalid" : "bad kind accepted");
+        Say(Ok(ClientActions.DialogShow(player, "multi_action", "<gold>Interaction", "<gray>Pick one", buttons)) ? "dialog ok" : "dialog failed");
+        Say(ClientActions.DialogShow(player, "bogus", "x", null, new DialogButton[0]) == -3 ? "bad kind invalid" : "bad kind accepted");
 
-        string id = SdkProxyInteraction.ResourcePackPush(player, "https://example.invalid/pack.zip", null, false, "<gold>Test pack", "demo");
+        string id = ClientActions.ResourcePackPush(player, "https://example.invalid/pack.zip", null, false, "<gold>Test pack", "demo");
         if (id != null)
         {
             Say("pack pushed:");
@@ -114,29 +113,29 @@ public static class Plugin
         {
             Say("pack failed");
         }
-        string bad = SdkProxyInteraction.ResourcePackPush(player, "https://example.invalid/pack.zip", "nothex", false, null, null);
+        string bad = ClientActions.ResourcePackPush(player, "https://example.invalid/pack.zip", "nothex", false, null, null);
         Say(bad == null ? "bad hash invalid" : "bad hash accepted");
 
-        Say(Ok(SdkProxyInteraction.CookieSet(player, "basalt:demo", Encoding.UTF8.GetBytes("abcd"))) ? "cookie stored" : "cookie store failed");
-        Say(SdkProxyInteraction.CookieRequest(player, "basalt:demo", OnCookie) > 0 ? "cookie requested" : "cookie request failed");
+        Say(Ok(ClientActions.CookieSet(player, "basalt:demo", Encoding.UTF8.GetBytes("abcd"))) ? "cookie stored" : "cookie store failed");
+        Say(ClientActions.CookieRequest(player, "basalt:demo", OnCookie) > 0 ? "cookie requested" : "cookie request failed");
 
-        Say(Ok(SdkProxyInteraction.PlayerDataSetF64(player, "ratio", 2.5)) ? "float stored" : "float store failed");
-        Say(SdkProxyInteraction.PlayerDataGetF64(player, "ratio", 0.0) == 2.5 ? "float read ok" : "float read failed");
-        Say(SdkProxyInteraction.PlayerDataGetF64(player, "missing", 7.5) == 7.5 ? "float default ok" : "float default failed");
+        Say(Ok(ClientActions.PlayerDataSetF64(player, "ratio", 2.5)) ? "float stored" : "float store failed");
+        Say(ClientActions.PlayerDataGetF64(player, "ratio", 0.0) == 2.5 ? "float read ok" : "float read failed");
+        Say(ClientActions.PlayerDataGetF64(player, "missing", 7.5) == 7.5 ? "float default ok" : "float default failed");
 
-        Say(Ok(SdkProxyInteraction.PlayersBroadcast("<green>Interaction hello {who}", new Args().Add("who", "everyone"))) ? "broadcast ok" : "broadcast failed");
-        Say(SdkProxyInteraction.PlayerTransfer(player, "", 25565) == -3 ? "bad host invalid" : "bad host accepted");
+        Say(Ok(ClientActions.PlayersBroadcast("<green>Interaction hello {who}", new Args().Add("who", "everyone"))) ? "broadcast ok" : "broadcast failed");
+        Say(ClientActions.PlayerTransfer(player, "", 25565) == -3 ? "bad host invalid" : "bad host accepted");
     }
 
     public static void Init()
     {
-        SdkEvents.On("player.join", Priority.Normal, OnJoin);
-        SdkEvents.On("player.quit", Priority.Normal, OnQuit);
-        SdkProxyInteraction.WatchResourcePacks(OnPackStatus);
-        SdkProxyInteraction.WatchSettings(OnSettings);
-        SdkCommands.Command("pidialog", "", OnDialogClick);
-        SdkCommands.Command("pitransfer", "", OnTransfer);
-        SdkCommands.Command("picleanup", "", OnCleanup);
+        EventBus.On("player.join", Priority.Normal, OnJoin);
+        EventBus.On("player.quit", Priority.Normal, OnQuit);
+        ClientActions.WatchResourcePacks(OnPackStatus);
+        ClientActions.WatchSettings(OnSettings);
+        Registry.Register("pidialog", "", OnDialogClick);
+        Registry.Register("pitransfer", "", OnTransfer);
+        Registry.Register("picleanup", "", OnCleanup);
         Say("interaction ready");
     }
 }

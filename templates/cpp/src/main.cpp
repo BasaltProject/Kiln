@@ -58,9 +58,12 @@ static void shop(basalt::server::core::Ctx ctx) {
 }
 
 static void announce(basalt::server::core::Ctx) {
-    basalt::server::core::Player online[64];
-    const int count = basalt::server::players::players_online(online, 64);
-    for (int i = 0; i < count && i < 64; ++i) {
+    static basalt::server::core::Player online[1024];
+    const int count = basalt::server::players::players_online(online, 1024);
+    if (count < 0 || count > 1024) {
+        return;
+    }
+    for (int i = 0; i < count; ++i) {
         basalt::server::players::send(online[i], "@announce");
     }
 }

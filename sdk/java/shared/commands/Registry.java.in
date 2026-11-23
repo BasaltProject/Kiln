@@ -1,0 +1,19 @@
+package org.basaltmc.shared.commands;
+
+import org.basaltmc.shared.core.*;
+
+import static org.basaltmc.shared.core.Level.*;
+import static org.basaltmc.shared.core.Priority.*;
+import static org.basaltmc.shared.internal.Callbacks.*;
+import static org.basaltmc.shared.internal.Native.*;
+import static org.basaltmc.shared.internal.RawCore.*;
+
+public final class Registry {
+    private Registry() {}
+
+    public static int register(String spec, String permission, Handler handler) {
+        byte[] s = utf8(spec);
+        byte[] p = utf8(permission);
+        return rawCommandRegister(at(s), s.length, at(p), p.length, tokenFor(handler));
+    }
+}

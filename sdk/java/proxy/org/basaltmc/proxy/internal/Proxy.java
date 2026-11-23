@@ -1,8 +1,11 @@
 package org.basaltmc.proxy.internal;
+
+import org.basaltmc.proxy.core.*;
 import org.teavm.interop.Address;
 import org.teavm.interop.Import;
-import org.basaltmc.proxy.core.*;
+
 import static org.basaltmc.proxy.internal.Native.*;
+
 public final class Proxy {
 
         private Proxy() {}

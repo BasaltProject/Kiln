@@ -248,6 +248,13 @@ def main():
     files.update(indexes(sdk, areas))
     bad = 0
     for relative, text in sorted(files.items()):
+        from source_imports import java_imports, kotlin_imports, csharp_imports
+        if relative.endswith(".java"):
+            text = java_imports(text)
+        elif relative.endswith(".kt"):
+            text = kotlin_imports(text)
+        elif relative.endswith(".cs"):
+            text = csharp_imports(text)
         text = "\n".join(line.rstrip() for line in text.splitlines()).rstrip() + "\n"
         path = sdk / relative
         if args.check:

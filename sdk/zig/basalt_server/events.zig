@@ -24,7 +24,9 @@ fn n(s: []const u8) i32 {
 
 fn view(out: []u8, length: i32) ?[]const u8 {
     if (length < 0) return null;
-    return out[0..@min(@as(usize, @intCast(length)), out.len)];
+    const used: usize = @intCast(length);
+    if (used > out.len) return null;
+    return out[0..used];
 }
 
 fn argsPtr(args: ?*const core.Args) [*]const u8 {

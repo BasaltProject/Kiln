@@ -1,5 +1,7 @@
 #include <basalt/proxy.h>
 
+static void terminate(char *buffer, int cap, int length) { buffer[length > 0 && length < cap ? length : 0] = '\0'; }
+
 static void on_join(bs_ctx ctx) {
     const bs_player player = bs_event_player(ctx);
     if (player == 0) {
@@ -10,7 +12,7 @@ static void on_join(bs_ctx ctx) {
     char count[24];
     char name[64];
     bs_format_i64(visits, count);
-    bs_player_name(player, name, sizeof name);
+    terminate(name, sizeof name, bs_player_name(player, name, sizeof name));
     bs_args args;
     bs_args_init(&args);
     bs_args_add(&args, "name", name);
@@ -23,9 +25,9 @@ static void hello(bs_ctx ctx) {
     const bs_player player = bs_event_player(ctx);
     char name[64];
     char server[64] = "console";
-    bs_command_source_name(ctx, name, sizeof name);
+    terminate(name, sizeof name, bs_command_source_name(ctx, name, sizeof name));
     if (player != 0) {
-        bs_proxy_player_server(player, server, sizeof server);
+        terminate(server, sizeof server, bs_proxy_player_server(player, server, sizeof server));
     }
     bs_args args;
     bs_args_init(&args);
@@ -36,9 +38,12 @@ static void hello(bs_ctx ctx) {
 
 static void announce(bs_ctx ctx) {
     (void)ctx;
-    bs_player online[64];
-    const int count = bs_players_online(online, 64);
-    for (int i = 0; i < count && i < 64; ++i) {
+    static bs_player online[1024];
+    const int count = bs_players_online(online, 1024);
+    if (count < 0 || count > 1024) {
+        return;
+    }
+    for (int i = 0; i < count; ++i) {
         bs_send(online[i], "@announce", 0);
     }
 }

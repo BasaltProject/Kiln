@@ -4,6 +4,8 @@ static int g_shop = 0;
 
 static void format_i64(int64_t value, char *out) { bs_format_i64(value, out); }
 
+static void terminate(char *buffer, int cap, int length) { buffer[length > 0 && length < cap ? length : 0] = '\0'; }
+
 static void buy_sparkles(bs_ctx ctx) {
     const bs_player player = bs_menu_click_player(ctx);
     const int64_t price = bs_config_i64("shop.sparkles-price", 100);
@@ -37,7 +39,7 @@ static void on_join(bs_ctx ctx) {
     char amount[24];
     char name[64];
     format_i64(balance, amount);
-    bs_player_name(player, name, sizeof name);
+    terminate(name, sizeof name, bs_player_name(player, name, sizeof name));
     bs_args args;
     bs_args_init(&args);
     bs_args_add(&args, "name", name);
@@ -49,7 +51,7 @@ static void hello(bs_ctx ctx) {
     int64_t times = 1;
     bs_command_arg_i64(ctx, "times", &times);
     char name[64];
-    bs_command_source_name(ctx, name, sizeof name);
+    terminate(name, sizeof name, bs_command_source_name(ctx, name, sizeof name));
     bs_args args;
     bs_args_init(&args);
     bs_args_add(&args, "name", name);
@@ -64,15 +66,18 @@ static void shop(bs_ctx ctx) {
         return;
     }
     char name[64];
-    bs_command_source_name(ctx, name, sizeof name);
+    terminate(name, sizeof name, bs_command_source_name(ctx, name, sizeof name));
     bs_menu_open(g_shop, bs_player_by_name(name));
 }
 
 static void announce(bs_ctx ctx) {
     (void)ctx;
-    bs_player online[64];
-    const int count = bs_players_online(online, 64);
-    for (int i = 0; i < count && i < 64; ++i) {
+    static bs_player online[1024];
+    const int count = bs_players_online(online, 1024);
+    if (count < 0 || count > 1024) {
+        return;
+    }
+    for (int i = 0; i < count; ++i) {
         bs_send(online[i], "@announce", 0);
     }
 }
@@ -86,13 +91,13 @@ void plugin_init(void) {
     char title[128];
     char name[128];
     char lore[128];
-    bs_translate("shop-title", 0, title, sizeof title);
+    terminate(title, sizeof title, bs_translate("shop-title", 0, title, sizeof title));
     g_shop = bs_menu_create(title, 3);
-    bs_translate("shop-item-sparkles", 0, name, sizeof name);
+    terminate(name, sizeof name, bs_translate("shop-item-sparkles", 0, name, sizeof name));
     bs_args price;
     bs_args_init(&price);
     bs_args_add(&price, "price", "100");
-    bs_translate("shop-item-sparkles-lore", &price, lore, sizeof lore);
+    terminate(lore, sizeof lore, bs_translate("shop-item-sparkles-lore", &price, lore, sizeof lore));
     bs_menu_set(g_shop, 13, "minecraft:glowstone_dust", name, lore, buy_sparkles);
 
     const int period = (int)bs_config_i64("announce-period", 1200);

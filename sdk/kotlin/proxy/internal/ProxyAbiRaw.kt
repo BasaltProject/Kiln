@@ -1,9 +1,11 @@
 @file:OptIn(kotlin.wasm.ExperimentalWasmInterop::class)
 
-// Raw imports of basalt_proxy_abi.h.
 package org.basaltmc.proxy.internal
 
 import kotlin.wasm.WasmImport
+
+// Raw imports of basalt_proxy_abi.h.
+
 
 @WasmImport("basalt_proxy", "event_set_str")
 internal external fun rawProxyEventSetStr(ctx: Int, field: Int, flen: Int, value: Int, vlen: Int): Int
