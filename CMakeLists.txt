@@ -47,7 +47,7 @@ add_library(kiln-core STATIC
     ${CMAKE_CURRENT_BINARY_DIR}/AbiTable.cpp ${CMAKE_CURRENT_BINARY_DIR}/EmbeddedSdk.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/EmbeddedTemplates.cpp ${CMAKE_CURRENT_BINARY_DIR}/EmbeddedAbi.cpp)
 target_include_directories(kiln-core PUBLIC src)
-target_link_libraries(kiln-core PUBLIC basalt::wire-plugins basalt::mbedtls basalt::zlib basalt::warnings
+target_link_libraries(kiln-core PUBLIC basalt::wire-plugins basalt::mbedtls basalt::zlib basalt::platform basalt::warnings
     basalt::sanitizers basalt::parity)
 if(WIN32)
     target_link_libraries(kiln-core PUBLIC crypt32 ws2_32)
