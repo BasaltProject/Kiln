@@ -1,13 +1,14 @@
+using Basalt.Proxy.Core;
+using Basalt.Proxy.Internal;
+using Basalt.Proxy.Values;
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
-using Basalt.Proxy.Core;
-using Basalt.Proxy.Internal;
-using Basalt.Proxy.Values;
-using static Basalt.Proxy.Internal.Native;
 using static Basalt.Proxy.Core.Level;
 using static Basalt.Proxy.Core.Priority;
+using static Basalt.Proxy.Internal.Native;
+
 namespace Basalt.Proxy.Internal;
 
 internal static unsafe partial class Native {

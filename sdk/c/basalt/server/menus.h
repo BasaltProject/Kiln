@@ -27,16 +27,20 @@ static inline int32_t bs_ev_value_result_fn(void *user, char *out, int32_t cap) 
 
 /* Shows a form (a finished document); `handler` runs once with the answer, read it with bs_completion_value. */
 static inline int bs_form_open(bs_player player, const void *form, int form_len, bs_handler handler) {
-    const int token = bs_token_for(handler);
-    return token < 0 ? BASALT_ERR_INVALID : basalt_form_open(player, (const char *)form, form_len, token);
+    const int token = bs_once_token(handler);
+    return token < 0 ? BASALT_ERR_INVALID
+                     : bs_once_bind(token, BS_ONCE_REQUEST,
+                                    basalt_form_open(player, (const char *)form, form_len, token));
 }
 
 static inline int bs_form_close(bs_player player) { return basalt_form_close(player); }
 
 /* Shows a dialog (SNBT or a registry id); `handler` runs once on the first custom click. */
 static inline int bs_dialog_show(bs_player player, const char *dialog, bs_handler handler) {
-    const int token = bs_token_for(handler);
-    return token < 0 ? BASALT_ERR_INVALID : basalt_dialog_show(player, dialog, bs_ev_len(dialog), token);
+    const int token = bs_once_token(handler);
+    return token < 0 ? BASALT_ERR_INVALID
+                     : bs_once_bind(token, BS_ONCE_REQUEST,
+                                    basalt_dialog_show(player, dialog, bs_ev_len(dialog), token));
 }
 
 static inline int bs_dialog_clear(bs_player player) { return basalt_dialog_clear(player); }

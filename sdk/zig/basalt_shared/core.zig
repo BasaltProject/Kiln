@@ -68,10 +68,15 @@ pub fn cap(out: []u8) i32 {
     return @intCast(out.len);
 }
 
+/// Handles `players.online` and `servers.players` can read when the caller's array is smaller than the answer.
+pub const spill_handles = 1024;
+
+/// The text a call wrote into `out`, or null on an error or when the answer did not fit (nothing was written then).
 pub fn view(out: []u8, n: i32) ?[]const u8 {
     if (n < 0) return null;
     const used: usize = @intCast(n);
-    return out[0..@min(used, out.len)];
+    if (used > out.len) return null;
+    return out[0..used];
 }
 
 /// Named arguments for text: add pairs, then pass the list to `players.send`, `text.translate` or `commands.reply`.

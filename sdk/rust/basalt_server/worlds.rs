@@ -269,8 +269,8 @@ pub fn world_lightning(world: i32, x: f64, y: f64, z: f64) -> i32 {
     unsafe { raw::world_lightning(world, x, y, z) }
 }
 
-pub fn world_game_event(world: i32, eventId: &str, x: f64, y: f64, z: f64, source: &str) -> i32 {
-    unsafe { raw::world_game_event(world, eventId.as_ptr(), eventId.len() as i32, x, y, z, source.as_ptr(), source.len() as i32) }
+pub fn world_game_event(world: i32, event_id: &str, x: f64, y: f64, z: f64, source: &str) -> i32 {
+    unsafe { raw::world_game_event(world, event_id.as_ptr(), event_id.len() as i32, x, y, z, source.as_ptr(), source.len() as i32) }
 }
 
 pub fn world_player_effect(player: i32, op: &str, args: &[u8], buffer: &mut [u8]) -> i32 {

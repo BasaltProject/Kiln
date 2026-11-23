@@ -1,81 +1,99 @@
+import org.basaltmc.proxy.commands.command
+import org.basaltmc.proxy.commands.commandReply
+import org.basaltmc.proxy.config.configStr
 import org.basaltmc.proxy.core.Args
 import org.basaltmc.proxy.core.Ctx
+import org.basaltmc.proxy.core.Priority
+import org.basaltmc.proxy.events.commandArgBool
+import org.basaltmc.proxy.events.commandArgF64
+import org.basaltmc.proxy.events.configValue
+import org.basaltmc.proxy.events.eventDeny
+import org.basaltmc.proxy.events.eventFields
+import org.basaltmc.proxy.events.eventGetStr
+import org.basaltmc.proxy.events.eventSetFlag
+import org.basaltmc.proxy.events.eventSetText
+import org.basaltmc.proxy.events.on
+import org.basaltmc.proxy.events.pluginInfo
+import org.basaltmc.proxy.events.pluginManifest
+import org.basaltmc.proxy.events.watch
+import org.basaltmc.proxy.log.logError
+import org.basaltmc.proxy.log.logInfo
 
 var blocked = ""
 
 fun onEnable(ctx: Ctx) {
-    org.basaltmc.proxy.events.pluginInfo("id")?.let {
-        org.basaltmc.proxy.log.logInfo("plugin id:")
-        org.basaltmc.proxy.log.logInfo(it)
+    pluginInfo("id")?.let {
+        logInfo("plugin id:")
+        logInfo(it)
     }
-    org.basaltmc.proxy.events.pluginInfo("version")?.let {
-        org.basaltmc.proxy.log.logInfo("plugin version:")
-        org.basaltmc.proxy.log.logInfo(it)
+    pluginInfo("version")?.let {
+        logInfo("plugin version:")
+        logInfo(it)
     }
-    if (org.basaltmc.proxy.events.pluginManifest() != null) org.basaltmc.proxy.log.logInfo("manifest ok")
-    if (org.basaltmc.proxy.events.configValue("banned-words") != null) org.basaltmc.proxy.log.logInfo("config array ok")
-    org.basaltmc.proxy.log.logInfo(blocked)
+    if (pluginManifest() != null) logInfo("manifest ok")
+    if (configValue("banned-words") != null) logInfo("config array ok")
+    logInfo(blocked)
 }
 
 fun onChat(ctx: Ctx) {
-    val message = org.basaltmc.proxy.events.eventGetStr(ctx, "message") ?: return
-    if (org.basaltmc.proxy.events.eventFields(ctx) == null) org.basaltmc.proxy.log.logError("event fields failed")
+    val message = eventGetStr(ctx, "message") ?: return
+    if (eventFields(ctx) == null) logError("event fields failed")
     if (message == "ping") {
-        org.basaltmc.proxy.events.eventSetText(ctx, "message", "pong")
-        org.basaltmc.proxy.log.logInfo("chat rewritten")
+        eventSetText(ctx, "message", "pong")
+        logInfo("chat rewritten")
     } else if (message == blocked) {
-        org.basaltmc.proxy.events.eventDeny(ctx, "<red>Watch your language")
-        org.basaltmc.proxy.log.logInfo("chat denied")
+        eventDeny(ctx, "<red>Watch your language")
+        logInfo("chat denied")
     }
 }
 
 fun onChatSeen(ctx: Ctx) {
-    org.basaltmc.proxy.events.eventGetStr(ctx, "message")?.let {
-        org.basaltmc.proxy.log.logInfo("chat seen:")
-        org.basaltmc.proxy.log.logInfo(it)
+    eventGetStr(ctx, "message")?.let {
+        logInfo("chat seen:")
+        logInfo(it)
     }
 }
 
 fun onCommand(ctx: Ctx) {
-    if (org.basaltmc.proxy.events.eventGetStr(ctx, "command") == "secret") {
-        org.basaltmc.proxy.events.eventDeny(ctx, "<red>No secrets here")
-        org.basaltmc.proxy.log.logInfo("command denied")
+    if (eventGetStr(ctx, "command") == "secret") {
+        eventDeny(ctx, "<red>No secrets here")
+        logInfo("command denied")
     }
 }
 
 fun onKick(ctx: Ctx) {
-    org.basaltmc.proxy.events.eventSetText(ctx, "reason", "<yellow>Kicked by the backend, come back soon")
-    if (org.basaltmc.proxy.events.eventSetText(ctx, "server", "nowhere") < 0) org.basaltmc.proxy.log.logInfo("redirect refused")
-    if (org.basaltmc.proxy.events.eventSetFlag(ctx, "cancelled", true) < 0) org.basaltmc.proxy.log.logInfo("kick cannot be cancelled")
+    eventSetText(ctx, "reason", "<yellow>Kicked by the backend, come back soon")
+    if (eventSetText(ctx, "server", "nowhere") < 0) logInfo("redirect refused")
+    if (eventSetFlag(ctx, "cancelled", true) < 0) logInfo("kick cannot be cancelled")
 }
 
 fun onKickSeen(ctx: Ctx) {
-    org.basaltmc.proxy.events.eventGetStr(ctx, "reason")?.let {
-        org.basaltmc.proxy.log.logInfo("kick seen:")
-        org.basaltmc.proxy.log.logInfo(it)
+    eventGetStr(ctx, "reason")?.let {
+        logInfo("kick seen:")
+        logInfo(it)
     }
 }
 
 fun onCommandRun(ctx: Ctx) {
-    val factor = org.basaltmc.proxy.events.commandArgF64(ctx, "factor")
-    val flag = org.basaltmc.proxy.events.commandArgBool(ctx, "flag")
+    val factor = commandArgF64(ctx, "factor")
+    val flag = commandArgBool(ctx, "flag")
     if (factor == null || flag == null) {
-        org.basaltmc.proxy.commands.commandReply(ctx, "<red>bad arguments")
+        commandReply(ctx, "<red>bad arguments")
         return
     }
-    org.basaltmc.proxy.commands.commandReply(
+    commandReply(
         ctx, "<green>factor is {size}, flag is {flag}",
         Args().add("size", if (factor > 1.5) "big" else "small").add("flag", if (flag) "yes" else "no")
     )
 }
 
 fun init() {
-    blocked = org.basaltmc.proxy.config.configStr("blocked-word") ?: ""
-    org.basaltmc.proxy.events.on("plugin.enable", org.basaltmc.proxy.core.Priority.NORMAL, ::onEnable)
-    org.basaltmc.proxy.events.on("player.chat", org.basaltmc.proxy.core.Priority.NORMAL, ::onChat)
-    org.basaltmc.proxy.events.watch("player.chat", ::onChatSeen)
-    org.basaltmc.proxy.events.on("player.command", org.basaltmc.proxy.core.Priority.NORMAL, ::onCommand)
-    org.basaltmc.proxy.events.on("player.kick", org.basaltmc.proxy.core.Priority.NORMAL, ::onKick)
-    org.basaltmc.proxy.events.watch("player.kick", ::onKickSeen)
-    org.basaltmc.proxy.commands.command("proxyevents <factor: float> <flag: bool>", "", ::onCommandRun)
+    blocked = configStr("blocked-word") ?: ""
+    on("plugin.enable", Priority.NORMAL, ::onEnable)
+    on("player.chat", Priority.NORMAL, ::onChat)
+    watch("player.chat", ::onChatSeen)
+    on("player.command", Priority.NORMAL, ::onCommand)
+    on("player.kick", Priority.NORMAL, ::onKick)
+    watch("player.kick", ::onKickSeen)
+    command("proxyevents <factor: float> <flag: bool>", "", ::onCommandRun)
 }

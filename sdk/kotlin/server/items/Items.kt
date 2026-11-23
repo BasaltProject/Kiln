@@ -1,14 +1,16 @@
 @file:OptIn(kotlin.wasm.unsafe.UnsafeWasmMemoryApi::class)
 
-// Items area: item stack documents, inventory handles, recipes, windows, container menus, loot and trades.
 package org.basaltmc.server.items
+
+import kotlin.wasm.unsafe.MemoryAllocator
+import kotlin.wasm.unsafe.withScopedMemoryAllocator
 import org.basaltmc.server.core.*
 import org.basaltmc.server.internal.*
 import org.basaltmc.server.values.*
 
+// Items area: item stack documents, inventory handles, recipes, windows, container menus, loot and trades.
 
-import kotlin.wasm.unsafe.MemoryAllocator
-import kotlin.wasm.unsafe.withScopedMemoryAllocator
+
 
 private const val ITEM_CAP = 512
 

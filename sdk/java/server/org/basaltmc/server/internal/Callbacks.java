@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.basaltmc.server.core.Handler;
 import org.basaltmc.server.core.Level;
-import org.basaltmc.server.log.Log;
+import org.basaltmc.server.log.Logger;
 import org.teavm.interop.Function;
 import org.teavm.interop.Import;
 
@@ -36,7 +36,7 @@ public final class Callbacks {
             try {
                 handlers.get(token - 1).run(ctx);
             } catch (Throwable error) {
-                Log.log(Level.ERROR, "unhandled " + error);
+                Logger.log(Level.ERROR, "unhandled " + error);
             }
         }
     }

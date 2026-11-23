@@ -1,8 +1,10 @@
 @file:OptIn(kotlin.wasm.unsafe.UnsafeWasmMemoryApi::class, kotlin.wasm.ExperimentalWasmInterop::class)
+
 package org.basaltmc.proxy.players
+
+import kotlin.wasm.unsafe.*
 import org.basaltmc.proxy.core.*
 import org.basaltmc.proxy.internal.*
-import kotlin.wasm.unsafe.*
 
 fun playerUuid(player: Player): String? = fetch { out, cap -> rawProxyPlayerUuid(player, out, cap) }
 

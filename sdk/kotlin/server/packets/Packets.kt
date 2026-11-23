@@ -1,15 +1,17 @@
 @file:OptIn(kotlin.wasm.unsafe.UnsafeWasmMemoryApi::class)
 
-// Plugin channels and raw packets (abi/areas/packets.h). Calls return the import result: a count or handle, or a
-// negative ABI code. The out-calls return an OutResult: `error` is 0 or the negative code, `bytes` the answer, and
-// `value()` opens it as a document.
 package org.basaltmc.server.packets
+
+import kotlin.wasm.unsafe.withScopedMemoryAllocator
 import org.basaltmc.server.core.*
 import org.basaltmc.server.internal.*
 import org.basaltmc.server.values.*
 
+// Plugin channels and raw packets (abi/areas/packets.h). Calls return the import result: a count or handle, or a
+// negative ABI code. The out-calls return an OutResult: `error` is 0 or the negative code, `bytes` the answer, and
+// `value()` opens it as a document.
 
-import kotlin.wasm.unsafe.withScopedMemoryAllocator
+
 
 private const val PACKETS_INITIAL = 1024
 

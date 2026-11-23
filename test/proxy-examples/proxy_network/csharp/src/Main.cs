@@ -1,9 +1,10 @@
+using Basalt.Proxy.Config;
 using Basalt.Proxy.Core;
+using Basalt.Proxy.Events;
+using Basalt.Proxy.Log;
+using Basalt.Proxy.Network;
 using Basalt.Proxy.Values;
-using SdkConfig = global::Basalt.Proxy.Config.Config;
-using SdkEvents = global::Basalt.Proxy.Events.Events;
-using SdkLogger = global::Basalt.Proxy.Log.Logger;
-using SdkProxyNetwork = global::Basalt.Proxy.Network.ProxyNetwork;
+using System;
 using System.Text;
 
 public static class Plugin
@@ -42,7 +43,7 @@ public static class Plugin
         o[0] = 0x08;
         o[1] = (byte)(t.Length >> 8);
         o[2] = (byte)t.Length;
-        System.Array.Copy(t, 0, o, 3, t.Length);
+        Array.Copy(t, 0, o, 3, t.Length);
         return o;
     }
 
@@ -51,120 +52,120 @@ public static class Plugin
         byte[] a = Utf8(first), b = Utf8(rest);
         byte[] o = new byte[1 + a.Length + b.Length];
         o[0] = (byte)a.Length;
-        System.Array.Copy(a, 0, o, 1, a.Length);
-        System.Array.Copy(b, 0, o, 1 + a.Length, b.Length);
+        Array.Copy(a, 0, o, 1, a.Length);
+        Array.Copy(b, 0, o, 1 + a.Length, b.Length);
         return o;
     }
 
     static void OnMessage(int ctx)
     {
-        if (!Open(SdkProxyNetwork.MessageGet(ctx), out Value map))
+        if (!Open(Transport.MessageGet(ctx), out Value map))
         {
-            SdkLogger.LogError("message read failed");
+            Logger.LogError("message read failed");
             return;
         }
         string data = map.TryFind("data", out Value d) && d.TryBytes(out byte[] raw) ? Encoding.UTF8.GetString(raw) : "";
-        SdkLogger.LogInfo("net: message " + Text(map, "source") + " " + Text(map, "channel") + " " + data);
-        int player = SdkEvents.EventPlayer(ctx);
-        if (player > 0 && SdkProxyNetwork.MessageSend(player, "basalt:demo", Utf8("pong"), true) == 0)
-            SdkLogger.LogInfo("net: reply sent");
+        Logger.LogInfo("net: message " + Text(map, "source") + " " + Text(map, "channel") + " " + data);
+        int player = EventBus.EventPlayer(ctx);
+        if (player > 0 && Transport.MessageSend(player, "basalt:demo", Utf8("pong"), true) == 0)
+            Logger.LogInfo("net: reply sent");
     }
 
     static void OnDecider(int ctx)
     {
-        byte[] body = SdkProxyNetwork.PacketBody(ctx);
-        if (!Open(SdkProxyNetwork.PacketGet(ctx), out Value map) || body == null)
+        byte[] body = Transport.PacketBody(ctx);
+        if (!Open(Transport.PacketGet(ctx), out Value map) || body == null)
         {
-            SdkLogger.LogError("packet read failed");
+            Logger.LogError("packet read failed");
             return;
         }
         int at = Find(body, rewriteMarker);
         if (Find(body, cancelMarker) >= 0)
         {
-            if (SdkProxyNetwork.PacketCancel(ctx) == 0) SdkLogger.LogInfo("net: cancel for " + Text(map, "player_name"));
+            if (Transport.PacketCancel(ctx) == 0) Logger.LogInfo("net: cancel for " + Text(map, "player_name"));
         }
         else if (at >= 0)
         {
             for (int k = 0; k < Utf8(rewriteMarker).Length; k++)
                 if (body[at + k] >= 'a' && body[at + k] <= 'z') body[at + k] -= 32;
-            if (SdkProxyNetwork.PacketSetBody(ctx, body) == 0) SdkLogger.LogInfo("net: rewrite for " + Text(map, "player_name"));
+            if (Transport.PacketSetBody(ctx, body) == 0) Logger.LogInfo("net: rewrite for " + Text(map, "player_name"));
         }
     }
 
     static void OnWatch(int ctx)
     {
-        if (!Open(SdkProxyNetwork.PacketGet(ctx), out Value map)) return;
-        if (!refusedOnce && SdkProxyNetwork.PacketCancel(ctx) < 0)
+        if (!Open(Transport.PacketGet(ctx), out Value map)) return;
+        if (!refusedOnce && Transport.PacketCancel(ctx) < 0)
         {
             refusedOnce = true;
-            SdkLogger.LogInfo("net: observer cancel refused");
+            Logger.LogInfo("net: observer cancel refused");
         }
         if (map.TryFind("cancelled", out Value c) && c.TryBool(out bool seen) && seen)
-            SdkLogger.LogInfo("net: watch saw a cancelled packet");
+            Logger.LogInfo("net: watch saw a cancelled packet");
     }
 
     static void OnAntibot(int ctx)
     {
-        if (Open(SdkProxyNetwork.AntibotEventGet(ctx), out Value map))
-            SdkLogger.LogInfo("net: antibot " + Text(map, "kind") + " " + Text(map, "action"));
+        if (Open(Transport.AntibotEventGet(ctx), out Value map))
+            Logger.LogInfo("net: antibot " + Text(map, "kind") + " " + Text(map, "action"));
     }
 
     static void Idle(int ctx) { }
 
     static void OnJoin(int ctx)
     {
-        int player = SdkEvents.EventPlayer(ctx);
+        int player = EventBus.EventPlayer(ctx);
         if (player <= 0) return;
         byte[] body = ChatBody("net welcome");
-        if (SdkProxyNetwork.PacketSend(player, "clientbound.system_chat", body) == 0) SdkLogger.LogInfo("net: sent welcome");
-        if (SdkProxyNetwork.PacketSend(player, "serverbound.play.chat_command", body) < 0)
-            SdkLogger.LogInfo("net: wrong direction refused");
-        if (SdkProxyNetwork.MessageSend(player, channel, Utf8("hello"), true) == 0) SdkLogger.LogInfo("net: sent hello message");
-        if (SdkProxyNetwork.PacketReceive(player, "serverbound.play.custom_payload", StringPrefixed(channel, "ping")) == 0)
-            SdkLogger.LogInfo("net: injected custom payload");
-        if (SdkProxyNetwork.PacketReceive(player, "serverbound.play.chat_command", StringPrefixed("list", "")) == 0)
-            SdkLogger.LogInfo("net: injected command");
+        if (Transport.PacketSend(player, "clientbound.system_chat", body) == 0) Logger.LogInfo("net: sent welcome");
+        if (Transport.PacketSend(player, "serverbound.play.chat_command", body) < 0)
+            Logger.LogInfo("net: wrong direction refused");
+        if (Transport.MessageSend(player, channel, Utf8("hello"), true) == 0) Logger.LogInfo("net: sent hello message");
+        if (Transport.PacketReceive(player, "serverbound.play.custom_payload", StringPrefixed(channel, "ping")) == 0)
+            Logger.LogInfo("net: injected custom payload");
+        if (Transport.PacketReceive(player, "serverbound.play.chat_command", StringPrefixed("list", "")) == 0)
+            Logger.LogInfo("net: injected command");
     }
 
     static void OnEnable(int ctx)
     {
-        if (Open(SdkProxyNetwork.PacketNames(), out Value names) && names.Count > 100) SdkLogger.LogInfo("net: packets known");
-        if (Open(SdkProxyNetwork.PacketResolve("clientbound.system_chat"), out Value map) &&
+        if (Open(Transport.PacketNames(), out Value names) && names.Count > 100) Logger.LogInfo("net: packets known");
+        if (Open(Transport.PacketResolve("clientbound.system_chat"), out Value map) &&
             map.TryFind("serverbound", out Value sb) && sb.TryBool(out bool toServer) && !toServer)
-            SdkLogger.LogInfo("net: resolved a clientbound play packet");
-        if (SdkProxyNetwork.PacketResolve("nope.nothing") == null) SdkLogger.LogInfo("net: unknown packet refused");
-        if (SdkProxyNetwork.ChannelRegister(channel) == 0) SdkLogger.LogInfo("net: channel registered");
-        if (SdkProxyNetwork.ChannelRegister("BungeeCord") < 0) SdkLogger.LogInfo("net: bungee channel refused");
-        if (SdkProxyNetwork.ChannelRegister("basalt:temp") == 0 && SdkProxyNetwork.ChannelUnregister("basalt:temp") == 0 &&
-            SdkProxyNetwork.ChannelUnregister("basalt:temp") < 0)
-            SdkLogger.LogInfo("net: temp channel unregistered");
-        SdkProxyNetwork.MessageOn("basalt:demo", OnMessage);
+            Logger.LogInfo("net: resolved a clientbound play packet");
+        if (Transport.PacketResolve("nope.nothing") == null) Logger.LogInfo("net: unknown packet refused");
+        if (Transport.ChannelRegister(channel) == 0) Logger.LogInfo("net: channel registered");
+        if (Transport.ChannelRegister("BungeeCord") < 0) Logger.LogInfo("net: bungee channel refused");
+        if (Transport.ChannelRegister("basalt:temp") == 0 && Transport.ChannelUnregister("basalt:temp") == 0 &&
+            Transport.ChannelUnregister("basalt:temp") < 0)
+            Logger.LogInfo("net: temp channel unregistered");
+        Transport.MessageOn("basalt:demo", OnMessage);
         byte[] opts = new ValueWriter().BeginMap().Key("priority").String("late").Key("fail").String("closed").End().Finish();
-        if (SdkProxyNetwork.PacketOn("clientbound.system_chat", opts, OnDecider) > 0) SdkLogger.LogInfo("net: decider listening");
-        SdkProxyNetwork.PacketWatch("clientbound.system_chat", new byte[0], OnWatch);
-        int listener = SdkProxyNetwork.PacketOn("serverbound.play.*", new byte[0], Idle);
-        if (listener > 0 && SdkProxyNetwork.PacketRemove(listener) == 0 && SdkProxyNetwork.PacketRemove(listener) < 0)
-            SdkLogger.LogInfo("net: listener removed");
-        if (SdkProxyNetwork.PacketOn("nope.nothing", new byte[0], Idle) < 0) SdkLogger.LogInfo("net: bad listener name refused");
-        if (SdkProxyNetwork.PacketGet(9999) == null) SdkLogger.LogInfo("net: bad context refused");
-        SdkProxyNetwork.AntibotOn(OnAntibot);
-        SdkProxyNetwork.AntibotVerify("NetBot");
-        SdkLogger.LogInfo(SdkProxyNetwork.AntibotIsVerified("NetBot") == 1 ? "net: verified yes" : "net: verified no");
-        SdkProxyNetwork.AntibotUnverify("NetBot");
-        SdkLogger.LogInfo(SdkProxyNetwork.AntibotIsVerified("NetBot") == 0 ? "net: unverified" : "net: still verified");
-        if (SdkProxyNetwork.AntibotBan("203.0.113.9") == 0) SdkLogger.LogInfo("net: ban ok");
-        if (SdkProxyNetwork.AntibotUnban("203.0.113.9") == 0) SdkLogger.LogInfo("net: unban ok");
-        if (SdkProxyNetwork.AntibotUnban("203.0.113.9") < 0) SdkLogger.LogInfo("net: unban absent");
-        if (SdkProxyNetwork.AntibotBan("not an address") < 0) SdkLogger.LogInfo("net: bad address refused");
-        SdkLogger.LogInfo(SdkProxyNetwork.AntibotUnderAttack() == 0 ? "net: no attack" : "net: under attack");
+        if (Transport.PacketOn("clientbound.system_chat", opts, OnDecider) > 0) Logger.LogInfo("net: decider listening");
+        Transport.PacketWatch("clientbound.system_chat", new byte[0], OnWatch);
+        int listener = Transport.PacketOn("serverbound.play.*", new byte[0], Idle);
+        if (listener > 0 && Transport.PacketRemove(listener) == 0 && Transport.PacketRemove(listener) < 0)
+            Logger.LogInfo("net: listener removed");
+        if (Transport.PacketOn("nope.nothing", new byte[0], Idle) < 0) Logger.LogInfo("net: bad listener name refused");
+        if (Transport.PacketGet(9999) == null) Logger.LogInfo("net: bad context refused");
+        Transport.AntibotOn(OnAntibot);
+        Transport.AntibotVerify("NetBot");
+        Logger.LogInfo(Transport.AntibotIsVerified("NetBot") == 1 ? "net: verified yes" : "net: verified no");
+        Transport.AntibotUnverify("NetBot");
+        Logger.LogInfo(Transport.AntibotIsVerified("NetBot") == 0 ? "net: unverified" : "net: still verified");
+        if (Transport.AntibotBan("203.0.113.9") == 0) Logger.LogInfo("net: ban ok");
+        if (Transport.AntibotUnban("203.0.113.9") == 0) Logger.LogInfo("net: unban ok");
+        if (Transport.AntibotUnban("203.0.113.9") < 0) Logger.LogInfo("net: unban absent");
+        if (Transport.AntibotBan("not an address") < 0) Logger.LogInfo("net: bad address refused");
+        Logger.LogInfo(Transport.AntibotUnderAttack() == 0 ? "net: no attack" : "net: under attack");
     }
 
     public static void Init()
     {
-        rewriteMarker = SdkConfig.ConfigStr("rewrite-marker") ?? "";
-        cancelMarker = SdkConfig.ConfigStr("cancel-marker") ?? "";
-        channel = SdkConfig.ConfigStr("channel") ?? "";
-        SdkEvents.On("plugin.enable", Priority.Normal, OnEnable);
-        SdkEvents.On("player.join", Priority.Normal, OnJoin);
+        rewriteMarker = Settings.ConfigStr("rewrite-marker") ?? "";
+        cancelMarker = Settings.ConfigStr("cancel-marker") ?? "";
+        channel = Settings.ConfigStr("channel") ?? "";
+        EventBus.On("plugin.enable", Priority.Normal, OnEnable);
+        EventBus.On("player.join", Priority.Normal, OnJoin);
     }
 }

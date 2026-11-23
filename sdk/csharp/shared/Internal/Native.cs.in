@@ -1,13 +1,14 @@
+using Basalt.Shared.Core;
+using Basalt.Shared.Internal;
+using Basalt.Shared.Values;
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
-using Basalt.Shared.Core;
-using Basalt.Shared.Internal;
-using Basalt.Shared.Values;
-using static Basalt.Shared.Internal.Native;
 using static Basalt.Shared.Core.Level;
 using static Basalt.Shared.Core.Priority;
+using static Basalt.Shared.Internal.Native;
+
 namespace Basalt.Shared.Internal;
 
 internal static unsafe partial class Native {

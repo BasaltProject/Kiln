@@ -56,4 +56,7 @@ Text<N> fill(Call call) {
 } // namespace detail
 
 inline int format_i64(long long value, char* out) { return bs_format_i64(value, out); }
+
+/// Drops a pending request (a wait, a lookup, a service call, a world request) so its callback never runs.
+inline int request_cancel(int request) { return bs_request_cancel(request); }
 } // namespace basalt::shared::core

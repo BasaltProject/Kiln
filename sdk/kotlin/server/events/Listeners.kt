@@ -1,16 +1,14 @@
 @file:OptIn(kotlin.wasm.unsafe.UnsafeWasmMemoryApi::class)
 
 package org.basaltmc.server.events
-import org.basaltmc.server.core.*
-import org.basaltmc.server.internal.*
-import org.basaltmc.server.values.*
-
 
 import kotlin.wasm.unsafe.withScopedMemoryAllocator
+import org.basaltmc.server.core.*
 import org.basaltmc.server.core.Ctx
 import org.basaltmc.server.core.Handler
 import org.basaltmc.server.core.Player
 import org.basaltmc.server.internal.*
+import org.basaltmc.server.values.*
 
 fun on(event: String, priority: Int, handler: Handler): Int =
     withScopedMemoryAllocator { a -> val e = a.str(event); rawEventOn(e.ptr, e.len, priority, tokenFor(handler)) }

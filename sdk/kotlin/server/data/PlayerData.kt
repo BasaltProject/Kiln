@@ -1,14 +1,12 @@
 @file:OptIn(kotlin.wasm.unsafe.UnsafeWasmMemoryApi::class)
 
 package org.basaltmc.server.data
-import org.basaltmc.server.core.*
-import org.basaltmc.server.internal.*
-import org.basaltmc.server.values.*
-
 
 import kotlin.wasm.unsafe.withScopedMemoryAllocator
+import org.basaltmc.server.core.*
 import org.basaltmc.server.core.Player
 import org.basaltmc.server.internal.*
+import org.basaltmc.server.values.*
 
 fun dataGetI64(player: Player, key: String, def: Long): Long =
     withScopedMemoryAllocator { a -> val k = a.str(key); rawDataGetI64(player, k.ptr, k.len, def) }

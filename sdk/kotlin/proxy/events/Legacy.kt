@@ -1,8 +1,10 @@
 @file:OptIn(kotlin.wasm.unsafe.UnsafeWasmMemoryApi::class, kotlin.wasm.ExperimentalWasmInterop::class)
+
 package org.basaltmc.proxy.events
+
+import kotlin.wasm.unsafe.*
 import org.basaltmc.proxy.core.*
 import org.basaltmc.proxy.internal.*
-import kotlin.wasm.unsafe.*
 
 fun eventSetStr(ctx: Ctx, field: String, value: String): Int = withScopedMemoryAllocator { a ->
     val f = a.str(field)

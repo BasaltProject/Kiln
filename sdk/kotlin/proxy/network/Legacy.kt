@@ -1,8 +1,10 @@
 @file:OptIn(kotlin.wasm.unsafe.UnsafeWasmMemoryApi::class, kotlin.wasm.ExperimentalWasmInterop::class)
+
 package org.basaltmc.proxy.network
+
+import kotlin.wasm.unsafe.*
 import org.basaltmc.proxy.core.*
 import org.basaltmc.proxy.internal.*
-import kotlin.wasm.unsafe.*
 
 fun serversList(): List<String> =
     (fetch { out, cap -> rawProxyServersList(out, cap) } ?: "").split('\n').filter { it.isNotEmpty() }

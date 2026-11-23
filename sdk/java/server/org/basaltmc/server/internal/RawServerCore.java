@@ -1,6 +1,8 @@
 package org.basaltmc.server.internal;
+
 import org.teavm.interop.Address;
 import org.teavm.interop.Import;
+
 public final class RawServerCore {
     @Import(name = "basalt_player_particle")
     public static native int rawPlayerParticle(int player, Address id, int idlen, int count, double spread);

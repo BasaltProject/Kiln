@@ -1,15 +1,13 @@
 @file:OptIn(kotlin.wasm.unsafe.UnsafeWasmMemoryApi::class)
 
 package org.basaltmc.proxy.players
-import org.basaltmc.proxy.core.*
-import org.basaltmc.proxy.internal.*
-import org.basaltmc.proxy.values.*
-
 
 import kotlin.wasm.unsafe.withScopedMemoryAllocator
+import org.basaltmc.proxy.core.*
 import org.basaltmc.proxy.core.Args
 import org.basaltmc.proxy.core.Player
 import org.basaltmc.proxy.internal.*
+import org.basaltmc.proxy.values.*
 
 fun playerByName(name: String): Player = withScopedMemoryAllocator { a -> val n = a.str(name); rawPlayerByName(n.ptr, n.len) }
 fun playersOnline(): List<Player> {

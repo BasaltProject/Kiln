@@ -34,7 +34,7 @@ typedef struct {
 } bs_srv_call;
 
 enum { BS_SRV_RESULT, BS_SRV_INFO, BS_SRV_CALL, BS_SRV_STORE, BS_SRV_DATA, BS_SRV_CONFIG, BS_SRV_LIST, BS_SRV_STAT,
-       BS_SRV_WALK, BS_SRV_SERVICES, BS_SRV_QUERY };
+       BS_SRV_WALK, BS_SRV_SERVICES, BS_SRV_QUERY, BS_SRV_COMMAND_SOURCE, BS_SRV_FILES_CAPABILITIES };
 
 static inline int32_t bs_srv_dispatch(void *user, char *out, int32_t cap) {
     const bs_srv_call *c = (const bs_srv_call *)user;
@@ -49,6 +49,8 @@ static inline int32_t bs_srv_dispatch(void *user, char *out, int32_t cap) {
     case BS_SRV_STAT: return basalt_files_stat(c->a, c->alen, out, cap);
     case BS_SRV_WALK: return basalt_files_walk(c->a, c->alen, out, cap);
     case BS_SRV_SERVICES: return basalt_service_list(out, cap);
+    case BS_SRV_COMMAND_SOURCE: return basalt_command_source(c->number, out, cap);
+    case BS_SRV_FILES_CAPABILITIES: return basalt_files_capabilities(c->a, c->alen, out, cap);
     default: return BASALT_ERR_INVALID;
     }
 }
@@ -100,6 +102,14 @@ static inline int32_t bs_permission_query(bs_ctx ctx, const char *field, char *b
     return bs_value_as_str(bs_value_find(root, field), text, &len) ? len : BASALT_ERR_INVALID;
 }
 
+/* Stops a provider made by bs_permission_provide. */
+static inline int32_t bs_permission_provider_remove(int32_t provider) {
+    return basalt_permission_provider_remove(provider);
+}
+
+/* Says the answers of this plugin's providers changed, so command trees are sent again. */
+static inline int32_t bs_permission_changed(void) { return basalt_permission_changed(); }
+
 /* ---- Commands ---- */
 
 static inline int32_t bs_command_ex(const char *spec, const char *permission, bs_handler handler,
@@ -141,6 +151,15 @@ static inline int32_t bs_command_arg_bool(bs_ctx ctx, const char *name, int32_t 
     return basalt_command_arg_bool(ctx, name, bs_srv_len(name), out);
 }
 
+/* Who ran the command: a map {name, console, kind, world, x, y, z, caller}. */
+static inline int32_t bs_command_source(bs_ctx ctx, char *buf, int32_t cap, bs_val *root) {
+    bs_srv_call c = {BS_SRV_COMMAND_SOURCE, 0, 0, 0, 0, ctx};
+    return bs_srv_value(&c, buf, cap, 0, 0, root);
+}
+
+/* The player handle of the sender, 0 for the console or a sender that is not an online player. */
+static inline int32_t bs_command_source_player(bs_ctx ctx) { return basalt_command_source_player(ctx); }
+
 /* ---- Broadcast, placeholders and server information ---- */
 
 /* `text` may be a "@key" lang key; `args` may be NULL. */
@@ -166,8 +185,9 @@ static inline int32_t bs_server_call(const char *op, const void *args, int32_t a
 }
 
 static inline int32_t bs_profile_lookup(const char *name, bs_handler handler) {
-    const int32_t token = bs_token_for(handler);
-    return token < 0 ? BASALT_ERR_INVALID : basalt_profile_lookup(name, bs_srv_len(name), token);
+    const int32_t token = bs_once_token(handler);
+    return token < 0 ? BASALT_ERR_INVALID
+                     : bs_once_bind(token, BS_ONCE_REQUEST, basalt_profile_lookup(name, bs_srv_len(name), token));
 }
 
 /* ---- Plugin files, storage and config ---- */
@@ -201,6 +221,12 @@ static inline int32_t bs_file_walk(const char *path, char *buf, int32_t cap, bs_
     return bs_srv_value(&c, buf, cap, 0, 0, root);
 }
 
+/* A path of the plugin folder: {atomic_move, hard_links} of the file system under it. */
+static inline int32_t bs_file_capabilities(const char *path, char *buf, int32_t cap, bs_val *root) {
+    bs_srv_call c = {BS_SRV_FILES_CAPABILITIES, path, bs_srv_len(path), 0, 0, 0};
+    return bs_srv_value(&c, buf, cap, 0, 0, root);
+}
+
 static inline int32_t bs_store_set_i64(const char *key, int64_t value) {
     unsigned char doc[16];
     bs_vw w;
@@ -208,6 +234,30 @@ static inline int32_t bs_store_set_i64(const char *key, int64_t value) {
     bs_vw_i64(&w, value);
     const int32_t n = bs_vw_finish(&w);
     return n < 0 ? n : basalt_store_set(key, bs_srv_len(key), (const char *)doc, n);
+}
+
+static inline int32_t bs_store_set_f64(const char *key, double value) {
+    unsigned char doc[16];
+    bs_vw w;
+    bs_vw_init(&w, doc, 16);
+    bs_vw_f64(&w, value);
+    const int32_t n = bs_vw_finish(&w);
+    return n < 0 ? n : basalt_store_set(key, bs_srv_len(key), (const char *)doc, n);
+}
+
+static inline int32_t bs_store_set_bool(const char *key, int32_t value) {
+    unsigned char doc[16];
+    bs_vw w;
+    bs_vw_init(&w, doc, 16);
+    bs_vw_bool(&w, value);
+    const int32_t n = bs_vw_finish(&w);
+    return n < 0 ? n : basalt_store_set(key, bs_srv_len(key), (const char *)doc, n);
+}
+
+/* Deletes the key. */
+static inline int32_t bs_store_set_null(const char *key) {
+    const char doc[1] = {(char)BASALT_VALUE_NULL};
+    return basalt_store_set(key, bs_srv_len(key), doc, 1);
 }
 
 static inline int32_t bs_store_set_str(const char *key, const char *value) {
@@ -251,25 +301,37 @@ static inline int32_t bs_service_reply(bs_ctx ctx, const void *doc, int32_t len)
     return basalt_service_reply(ctx, (const char *)doc, len);
 }
 
+/* Unregisters a service made by bs_service_register. */
+static inline int32_t bs_service_remove(int32_t service) { return basalt_service_remove(service); }
+
+/* Every service offered by loaded plugins, a sorted list of names. */
+static inline int32_t bs_service_list(char *buf, int32_t cap, bs_val *root) {
+    bs_srv_call c = {BS_SRV_SERVICES, 0, 0, 0, 0, 0};
+    return bs_srv_value(&c, buf, cap, 0, 0, root);
+}
+
 static inline int32_t bs_service_has(const char *name) { return basalt_service_has(name, bs_srv_len(name)); }
 
 static inline int32_t bs_service_call(const char *name, const void *args, int32_t args_len, int32_t timeout,
                                       bs_handler handler) {
-    const int32_t token = bs_token_for(handler);
+    const int32_t token = bs_once_token(handler);
     return token < 0 ? BASALT_ERR_INVALID
-                     : basalt_service_call(name, bs_srv_len(name), (const char *)args, args_len, timeout, token);
+                     : bs_once_bind(token, BS_ONCE_REQUEST,
+                                    basalt_service_call(name, bs_srv_len(name), (const char *)args, args_len, timeout,
+                                                        token));
 }
 
 /* ---- Scheduler completions ---- */
 
 static inline int32_t bs_wait(int32_t ticks, bs_handler handler) {
-    const int32_t token = bs_token_for(handler);
-    return token < 0 ? BASALT_ERR_INVALID : basalt_task_wait(ticks, token);
+    const int32_t token = bs_once_token(handler);
+    return token < 0 ? BASALT_ERR_INVALID : bs_once_bind(token, BS_ONCE_REQUEST, basalt_task_wait(ticks, token));
 }
 
 static inline int32_t bs_at(const char *world, double x, double z, bs_handler handler) {
-    const int32_t token = bs_token_for(handler);
-    return token < 0 ? BASALT_ERR_INVALID : basalt_task_at(world, bs_srv_len(world), x, z, token);
+    const int32_t token = bs_once_token(handler);
+    return token < 0 ? BASALT_ERR_INVALID
+                     : bs_once_bind(token, BS_ONCE_REQUEST, basalt_task_at(world, bs_srv_len(world), x, z, token));
 }
 
 #endif /* BASALT_SERVER_SERVER_H */

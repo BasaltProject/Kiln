@@ -1,16 +1,14 @@
 @file:OptIn(kotlin.wasm.unsafe.UnsafeWasmMemoryApi::class)
 
 package org.basaltmc.server.commands
-import org.basaltmc.server.core.*
-import org.basaltmc.server.internal.*
-import org.basaltmc.server.values.*
-
 
 import kotlin.wasm.unsafe.withScopedMemoryAllocator
+import org.basaltmc.server.core.*
 import org.basaltmc.server.core.Args
 import org.basaltmc.server.core.Ctx
 import org.basaltmc.server.core.Handler
 import org.basaltmc.server.internal.*
+import org.basaltmc.server.values.*
 
 fun command(spec: String, permission: String, handler: Handler): Int = withScopedMemoryAllocator { a ->
     val s = a.str(spec)

@@ -1,14 +1,16 @@
 @file:OptIn(kotlin.wasm.unsafe.UnsafeWasmMemoryApi::class, kotlin.wasm.ExperimentalWasmInterop::class)
 
-// Proxy admin area (abi/areas/proxy_admin.h): backends, console and chat, permission providers, groups, component JSON,
-// the plugin store, data by holder and waiting. Calls that give a value answer a Value, or null on a negative code.
 package org.basaltmc.proxy.admin
+
+import kotlin.wasm.unsafe.withScopedMemoryAllocator
 import org.basaltmc.proxy.core.*
 import org.basaltmc.proxy.internal.*
 import org.basaltmc.proxy.values.*
 
+// Proxy admin area (abi/areas/proxy_admin.h): backends, console and chat, permission providers, groups, component JSON,
+// the plugin store, data by holder and waiting. Calls that give a value answer a Value, or null on a negative code.
 
-import kotlin.wasm.unsafe.withScopedMemoryAllocator
+
 
 private const val INVALID = -3
 

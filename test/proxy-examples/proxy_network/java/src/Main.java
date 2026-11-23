@@ -1,13 +1,14 @@
-import static org.basaltmc.proxy.config.Config.configStr;
-import static org.basaltmc.proxy.core.Priority.NORMAL;
-import static org.basaltmc.proxy.events.Events.eventPlayer;
-import static org.basaltmc.proxy.events.Events.on;
-import static org.basaltmc.proxy.log.Log.logError;
-import static org.basaltmc.proxy.log.Log.logInfo;
-import org.basaltmc.proxy.network.Network;
-import org.basaltmc.proxy.values.Values;
-import org.basaltmc.proxy.values.Values.Value;
 import java.nio.charset.StandardCharsets;
+import org.basaltmc.proxy.network.Transport;
+import org.basaltmc.proxy.values.Documents;
+import org.basaltmc.proxy.values.Documents.Value;
+
+import static org.basaltmc.proxy.config.Settings.configStr;
+import static org.basaltmc.proxy.core.Priority.NORMAL;
+import static org.basaltmc.proxy.events.EventBus.eventPlayer;
+import static org.basaltmc.proxy.events.EventBus.on;
+import static org.basaltmc.proxy.log.Logger.logError;
+import static org.basaltmc.proxy.log.Logger.logInfo;
 
 public final class Main {
     private static String rewriteMarker = "";
@@ -59,7 +60,7 @@ public final class Main {
     }
 
     private static void onMessage(int ctx) {
-        byte[] doc = Network.messageGet(ctx);
+        byte[] doc = Transport.messageGet(ctx);
         Value map = doc == null ? null : Value.open(doc);
         if (map == null) {
             logError("message read failed");
@@ -69,14 +70,14 @@ public final class Main {
         logInfo("net: message " + text(map, "source") + " " + text(map, "channel") + " "
                 + new String(data == null ? new byte[0] : data, StandardCharsets.UTF_8));
         int player = eventPlayer(ctx);
-        if (player > 0 && Network.messageSend(player, "basalt:demo", utf8("pong"), true) == 0) {
+        if (player > 0 && Transport.messageSend(player, "basalt:demo", utf8("pong"), true) == 0) {
             logInfo("net: reply sent");
         }
     }
 
     private static void onDecider(int ctx) {
-        byte[] info = Network.packetGet(ctx);
-        byte[] body = Network.packetBody(ctx);
+        byte[] info = Transport.packetGet(ctx);
+        byte[] body = Transport.packetBody(ctx);
         Value map = info == null ? null : Value.open(info);
         if (map == null || body == null) {
             logError("packet read failed");
@@ -84,7 +85,7 @@ public final class Main {
         }
         int at = find(body, rewriteMarker);
         if (find(body, cancelMarker) >= 0) {
-            if (Network.packetCancel(ctx) == 0) {
+            if (Transport.packetCancel(ctx) == 0) {
                 logInfo("net: cancel for " + text(map, "player_name"));
             }
         } else if (at >= 0) {
@@ -93,19 +94,19 @@ public final class Main {
                     body[at + k] -= 32;
                 }
             }
-            if (Network.packetSetBody(ctx, body) == 0) {
+            if (Transport.packetSetBody(ctx, body) == 0) {
                 logInfo("net: rewrite for " + text(map, "player_name"));
             }
         }
     }
 
     private static void onWatch(int ctx) {
-        byte[] info = Network.packetGet(ctx);
+        byte[] info = Transport.packetGet(ctx);
         Value map = info == null ? null : Value.open(info);
         if (map == null) {
             return;
         }
-        if (!refusedOnce && Network.packetCancel(ctx) < 0) {
+        if (!refusedOnce && Transport.packetCancel(ctx) < 0) {
             refusedOnce = true;
             logInfo("net: observer cancel refused");
         }
@@ -115,7 +116,7 @@ public final class Main {
     }
 
     private static void onAntibot(int ctx) {
-        byte[] doc = Network.antibotEventGet(ctx);
+        byte[] doc = Transport.antibotEventGet(ctx);
         Value map = doc == null ? null : Value.open(doc);
         if (map != null) {
             logInfo("net: antibot " + text(map, "kind") + " " + text(map, "action"));
@@ -130,81 +131,81 @@ public final class Main {
             return;
         }
         byte[] body = chatBody("net welcome");
-        if (Network.packetSend(player, "clientbound.system_chat", body) == 0) {
+        if (Transport.packetSend(player, "clientbound.system_chat", body) == 0) {
             logInfo("net: sent welcome");
         }
-        if (Network.packetSend(player, "serverbound.play.chat_command", body) < 0) {
+        if (Transport.packetSend(player, "serverbound.play.chat_command", body) < 0) {
             logInfo("net: wrong direction refused");
         }
-        if (Network.messageSend(player, channel, utf8("hello"), true) == 0) {
+        if (Transport.messageSend(player, channel, utf8("hello"), true) == 0) {
             logInfo("net: sent hello message");
         }
-        if (Network.packetReceive(player, "serverbound.play.custom_payload", stringPrefixed(channel, "ping")) == 0) {
+        if (Transport.packetReceive(player, "serverbound.play.custom_payload", stringPrefixed(channel, "ping")) == 0) {
             logInfo("net: injected custom payload");
         }
-        if (Network.packetReceive(player, "serverbound.play.chat_command", stringPrefixed("list", "")) == 0) {
+        if (Transport.packetReceive(player, "serverbound.play.chat_command", stringPrefixed("list", "")) == 0) {
             logInfo("net: injected command");
         }
     }
 
     private static void onEnable(int ctx) {
-        byte[] names = Network.packetNames();
+        byte[] names = Transport.packetNames();
         Value list = names == null ? null : Value.open(names);
         if (list != null && list.count() > 100) {
             logInfo("net: packets known");
         }
-        byte[] resolved = Network.packetResolve("clientbound.system_chat");
+        byte[] resolved = Transport.packetResolve("clientbound.system_chat");
         Value map = resolved == null ? null : Value.open(resolved);
         if (map != null && !map.find("serverbound").asBool(true)) {
             logInfo("net: resolved a clientbound play packet");
         }
-        if (Network.packetResolve("nope.nothing") == null) {
+        if (Transport.packetResolve("nope.nothing") == null) {
             logInfo("net: unknown packet refused");
         }
-        if (Network.channelRegister(channel) == 0) {
+        if (Transport.channelRegister(channel) == 0) {
             logInfo("net: channel registered");
         }
-        if (Network.channelRegister("BungeeCord") < 0) {
+        if (Transport.channelRegister("BungeeCord") < 0) {
             logInfo("net: bungee channel refused");
         }
-        if (Network.channelRegister("basalt:temp") == 0 && Network.channelUnregister("basalt:temp") == 0
-                && Network.channelUnregister("basalt:temp") < 0) {
+        if (Transport.channelRegister("basalt:temp") == 0 && Transport.channelUnregister("basalt:temp") == 0
+                && Transport.channelUnregister("basalt:temp") < 0) {
             logInfo("net: temp channel unregistered");
         }
-        Network.messageOn("basalt:demo", Main::onMessage);
-        byte[] opts = new Values.Writer().beginMap().key("priority").string("late").key("fail").string("closed").end().finish();
-        if (Network.packetOn("clientbound.system_chat", opts, Main::onDecider) > 0) {
+        Transport.messageOn("basalt:demo", Main::onMessage);
+        byte[] opts = new Documents.Writer().beginMap().key("priority").string("late").key("fail").string("closed").end().finish();
+        if (Transport.packetOn("clientbound.system_chat", opts, Main::onDecider) > 0) {
             logInfo("net: decider listening");
         }
-        Network.packetWatch("clientbound.system_chat", new byte[0], Main::onWatch);
-        int listener = Network.packetOn("serverbound.play.*", new byte[0], Main::idle);
-        if (listener > 0 && Network.packetRemove(listener) == 0 && Network.packetRemove(listener) < 0) {
+        Transport.packetWatch("clientbound.system_chat", new byte[0], Main::onWatch);
+        int listener = Transport.packetOn("serverbound.play.*", new byte[0], Main::idle);
+        if (listener > 0 && Transport.packetRemove(listener) == 0 && Transport.packetRemove(listener) < 0) {
             logInfo("net: listener removed");
         }
-        if (Network.packetOn("nope.nothing", new byte[0], Main::idle) < 0) {
+        if (Transport.packetOn("nope.nothing", new byte[0], Main::idle) < 0) {
             logInfo("net: bad listener name refused");
         }
-        if (Network.packetGet(9999) == null) {
+        if (Transport.packetGet(9999) == null) {
             logInfo("net: bad context refused");
         }
-        Network.antibotOn(Main::onAntibot);
-        Network.antibotVerify("NetBot");
-        logInfo(Network.antibotIsVerified("NetBot") == 1 ? "net: verified yes" : "net: verified no");
-        Network.antibotUnverify("NetBot");
-        logInfo(Network.antibotIsVerified("NetBot") == 0 ? "net: unverified" : "net: still verified");
-        if (Network.antibotBan("203.0.113.9") == 0) {
+        Transport.antibotOn(Main::onAntibot);
+        Transport.antibotVerify("NetBot");
+        logInfo(Transport.antibotIsVerified("NetBot") == 1 ? "net: verified yes" : "net: verified no");
+        Transport.antibotUnverify("NetBot");
+        logInfo(Transport.antibotIsVerified("NetBot") == 0 ? "net: unverified" : "net: still verified");
+        if (Transport.antibotBan("203.0.113.9") == 0) {
             logInfo("net: ban ok");
         }
-        if (Network.antibotUnban("203.0.113.9") == 0) {
+        if (Transport.antibotUnban("203.0.113.9") == 0) {
             logInfo("net: unban ok");
         }
-        if (Network.antibotUnban("203.0.113.9") < 0) {
+        if (Transport.antibotUnban("203.0.113.9") < 0) {
             logInfo("net: unban absent");
         }
-        if (Network.antibotBan("not an address") < 0) {
+        if (Transport.antibotBan("not an address") < 0) {
             logInfo("net: bad address refused");
         }
-        logInfo(Network.antibotUnderAttack() == 0 ? "net: no attack" : "net: under attack");
+        logInfo(Transport.antibotUnderAttack() == 0 ? "net: no attack" : "net: under attack");
     }
 
     public static void init() {

@@ -1,7 +1,9 @@
 using Basalt.Proxy.Core;
 using Basalt.Proxy.Internal;
+
 namespace Basalt.Proxy.Players;
-public static partial class Players {
+
+public static partial class Directory {
     public static string PlayerUuid(int player) => ProxyNative.PlayerUuid(player);
     public static string PlayerServer(int player) => ProxyNative.PlayerServer(player);
     public static int PlayerPing(int player) => ProxyNative.PlayerPing(player);

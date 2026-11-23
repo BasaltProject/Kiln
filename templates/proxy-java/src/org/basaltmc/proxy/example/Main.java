@@ -1,20 +1,22 @@
 package org.basaltmc.proxy.example;
 
-import static org.basaltmc.proxy.commands.Commands.command;
-import static org.basaltmc.proxy.commands.Commands.commandReply;
-import static org.basaltmc.proxy.commands.Commands.commandSourceName;
-import static org.basaltmc.proxy.config.Config.configI64;
-import static org.basaltmc.proxy.core.Priority.NORMAL;
-import static org.basaltmc.proxy.data.SharedData.dataGetI64;
-import static org.basaltmc.proxy.data.SharedData.dataSetI64;
-import static org.basaltmc.proxy.events.Events.eventPlayer;
-import static org.basaltmc.proxy.events.Events.on;
-import static org.basaltmc.proxy.log.Log.logInfo;
-import static org.basaltmc.proxy.players.SharedPlayers.playerName;
-import static org.basaltmc.proxy.players.SharedPlayers.playersOnline;
-import static org.basaltmc.proxy.players.SharedPlayers.send;
-import static org.basaltmc.proxy.tasks.Tasks.every;
+import org.basaltmc.proxy.commands.Registry;
 import org.basaltmc.proxy.core.Args;
+import org.basaltmc.proxy.players.Directory;
+
+import static org.basaltmc.proxy.commands.Sender.name;
+import static org.basaltmc.proxy.commands.Sender.reply;
+import static org.basaltmc.proxy.config.Settings.configI64;
+import static org.basaltmc.proxy.core.Priority.NORMAL;
+import static org.basaltmc.proxy.data.PlayerStore.dataGetI64;
+import static org.basaltmc.proxy.data.PlayerStore.dataSetI64;
+import static org.basaltmc.proxy.events.EventBus.eventPlayer;
+import static org.basaltmc.proxy.events.EventBus.on;
+import static org.basaltmc.proxy.log.Logger.logInfo;
+import static org.basaltmc.proxy.players.Directory.playerName;
+import static org.basaltmc.proxy.players.Directory.playersOnline;
+import static org.basaltmc.proxy.players.Directory.send;
+import static org.basaltmc.proxy.tasks.Scheduler.every;
 
 public final class Main {
     private static String orEmpty(String text) {
@@ -30,19 +32,19 @@ public final class Main {
         dataSetI64(player, "visits", visits);
         send(player, "@welcome",
                 new Args().add("name", orEmpty(playerName(player))).add("visits", String.valueOf(visits)));
-        org.basaltmc.proxy.players.Players.playerTitle(player, "<gold>Welcome", "<gray>Have fun");
+        Directory.playerTitle(player, "<gold>Welcome", "<gray>Have fun");
     }
 
     private static void hello(int ctx) {
         int player = eventPlayer(ctx);
-        String server = player == 0 ? "console" : orEmpty(org.basaltmc.proxy.players.Players.playerServer(player));
-        commandReply(ctx, "@hello", new Args().add("name", orEmpty(commandSourceName(ctx))).add("server", server));
+        String server = player == 0 ? "console" : orEmpty(Directory.playerServer(player));
+        reply(ctx, "@hello", new Args().add("name", orEmpty(name(ctx))).add("server", server));
     }
 
     public static void init() {
         logInfo("starting up");
         on("player.join", NORMAL, Main::onJoin);
-        command("@ID@ hello", "", Main::hello);
+        Registry.register("@ID@ hello", "", Main::hello);
 
         int period = (int) configI64("announce-period", 1200);
         every(period, period, ctx -> {

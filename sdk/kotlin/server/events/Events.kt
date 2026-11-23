@@ -1,14 +1,16 @@
 @file:OptIn(kotlin.wasm.unsafe.UnsafeWasmMemoryApi::class, kotlin.wasm.ExperimentalWasmInterop::class)
 
-// Events area for Kotlin: strings and byte arrays over the raw imports, documents as Value (null on a failed call).
 package org.basaltmc.server.events
+
+import kotlin.wasm.unsafe.MemoryAllocator
+import kotlin.wasm.unsafe.withScopedMemoryAllocator
 import org.basaltmc.server.core.*
 import org.basaltmc.server.internal.*
 import org.basaltmc.server.values.*
 
+// Events area for Kotlin: strings and byte arrays over the raw imports, documents as Value (null on a failed call).
 
-import kotlin.wasm.unsafe.MemoryAllocator
-import kotlin.wasm.unsafe.withScopedMemoryAllocator
+
 
 const val EVENT_POST = 1
 const val EVENT_CANCELLED = 2

@@ -48,7 +48,7 @@ inline int cookie_request(Player player, const char* key, Handler handler) {
 /// The cookie length (written to `out` only when it fits), or a negative code when the client had none.
 inline int cookie_result(Ctx ctx, void* out, int capacity) { return bs_proxy_cookie_result(ctx, out, capacity); }
 
-inline int request_cancel(int request) { return bs_proxy_request_cancel(request); }
+using core::request_cancel;
 
 inline int player_transfer(Player player, const char* host, int port = 25565) {
     return bs_proxy_player_transfer(player, host, port);

@@ -1,14 +1,16 @@
 @file:OptIn(kotlin.wasm.unsafe.UnsafeWasmMemoryApi::class, kotlin.wasm.ExperimentalWasmInterop::class)
 
-// Proxy interaction area (abi/areas/proxy_interaction.h): dialogs, resource packs, cookies, transfer and extra player
-// operations. Observed events and completions are read with valueResult and the Value reader.
 package org.basaltmc.proxy.interaction
+
+import kotlin.wasm.unsafe.withScopedMemoryAllocator
 import org.basaltmc.proxy.core.*
 import org.basaltmc.proxy.internal.*
 import org.basaltmc.proxy.values.*
 
+// Proxy interaction area (abi/areas/proxy_interaction.h): dialogs, resource packs, cookies, transfer and extra player
+// operations. Observed events and completions are read with valueResult and the Value reader.
 
-import kotlin.wasm.unsafe.withScopedMemoryAllocator
+
 
 /** A dialog button: the label and the command the client runs as the player when it is clicked. */
 class DialogButton(val label: String, val command: String)

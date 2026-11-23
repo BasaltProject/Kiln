@@ -1,15 +1,17 @@
 @file:OptIn(kotlin.wasm.unsafe.UnsafeWasmMemoryApi::class)
 
-// Value builder and reader over the byte format of basalt_values.h. The writer grows a heap buffer (an optional limit
-// acts as a fixed capacity); the reader works in place on a validated document and never throws on malformed input.
 package org.basaltmc.proxy.values
-import org.basaltmc.proxy.core.*
-import org.basaltmc.proxy.internal.*
-
 
 import kotlin.wasm.unsafe.MemoryAllocator
 import kotlin.wasm.unsafe.Pointer
 import kotlin.wasm.unsafe.withScopedMemoryAllocator
+import org.basaltmc.proxy.core.*
+import org.basaltmc.proxy.internal.*
+
+// Value builder and reader over the byte format of basalt_values.h. The writer grows a heap buffer (an optional limit
+// acts as a fixed capacity); the reader works in place on a validated document and never throws on malformed input.
+
+
 
 const val VALUE_MAX_BYTES = 1 shl 20
 const val VALUE_MAX_DEPTH = 16

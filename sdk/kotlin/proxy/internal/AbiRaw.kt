@@ -1,9 +1,11 @@
 @file:OptIn(kotlin.wasm.ExperimentalWasmInterop::class)
 
-// Raw imports of the core plugin ABI (basalt_abi.h) shared by server and proxy plugins.
 package org.basaltmc.proxy.internal
 
 import kotlin.wasm.WasmImport
+
+// Raw imports of the core plugin ABI (basalt_abi.h) shared by server and proxy plugins.
+
 
 @WasmImport("basalt", "log")
 internal external fun rawLog(level: Int, msg: Int, len: Int)

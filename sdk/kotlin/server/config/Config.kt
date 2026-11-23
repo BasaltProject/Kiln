@@ -1,13 +1,11 @@
 @file:OptIn(kotlin.wasm.unsafe.UnsafeWasmMemoryApi::class)
 
 package org.basaltmc.server.config
+
+import kotlin.wasm.unsafe.withScopedMemoryAllocator
 import org.basaltmc.server.core.*
 import org.basaltmc.server.internal.*
 import org.basaltmc.server.values.*
-
-
-import kotlin.wasm.unsafe.withScopedMemoryAllocator
-import org.basaltmc.server.internal.*
 
 fun configI64(key: String, def: Long): Long = withScopedMemoryAllocator { a -> val k = a.str(key); rawConfigI64(k.ptr, k.len, def) }
 fun configF64(key: String, def: Double): Double = withScopedMemoryAllocator { a -> val k = a.str(key); rawConfigF64(k.ptr, k.len, def) }

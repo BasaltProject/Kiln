@@ -1,16 +1,18 @@
 @file:OptIn(kotlin.wasm.unsafe.UnsafeWasmMemoryApi::class, kotlin.wasm.ExperimentalWasmInterop::class)
 
-// Proxy events area (abi/areas/proxy_events.h): event fields as values, chat, command and kick decisions, plugin
-// identity, config arrays and typed command arguments. The *Value calls return the raw encoded value for the values
-// reader, or null on a negative code.
 package org.basaltmc.proxy.events
+
+import kotlin.wasm.unsafe.MemoryAllocator
+import kotlin.wasm.unsafe.withScopedMemoryAllocator
 import org.basaltmc.proxy.core.*
 import org.basaltmc.proxy.internal.*
 import org.basaltmc.proxy.values.*
 
+// Proxy events area (abi/areas/proxy_events.h): event fields as values, chat, command and kick decisions, plugin
+// identity, config arrays and typed command arguments. The *Value calls return the raw encoded value for the values
+// reader, or null on a negative code.
 
-import kotlin.wasm.unsafe.MemoryAllocator
-import kotlin.wasm.unsafe.withScopedMemoryAllocator
+
 
 private const val peTagFalse = 1
 private const val peTagTrue = 2

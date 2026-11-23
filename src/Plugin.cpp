@@ -75,6 +75,11 @@ std::vector<Diagnostic> verifyPlugin(const fs::path& root, std::optional<std::st
     if (const auto lang = table->string("lang"); lang.has_value() && !languageNamed(*lang).has_value()) {
         problem("`lang` is not one of " + languageList());
     }
+    if (found.empty()) {
+        if (const auto manifest = wire::plugins::PluginManifest::parse(*text); !manifest.has_value()) {
+            problem(manifest.error().message);
+        }
+    }
     const std::string target = targetOverride.has_value() ? std::string{*targetOverride} : manifestTarget(root);
     if (!targetNamed(target).has_value()) {
         problem("`target` must be `server` or `proxy`");

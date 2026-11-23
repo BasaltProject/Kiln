@@ -727,7 +727,7 @@ func tour(sdkCore.Ctx) {
 
 class TJava(TL):
     key = "java"
-    path = "src/org/basaltmc/server/example/worlds/Worlds.java"
+    path = "src/org/basaltmc/server/example/worlds/WorldTour.java"
 
     def il(self, kind, v):
         return "%dL" % v if kind == "i64" else str(v)
@@ -736,14 +736,14 @@ class TJava(TL):
         return repr(v) + ("f" if kind == "f32" else "")
 
     def call(self, pub, name, parts):
-        return "org.basaltmc.server.worlds.Worlds.%s(%s)" % (camelcase(pub), ", ".join(parts))
+        return "WorldManager.%s(%s)" % (camelcase(pub), ", ".join(parts))
 
     def arg(self, kind, name, extra, v, n, keeps):
         if kind == "str":
             return [], '"%s"' % v
         if kind == "bytes":
             if isinstance(v, Doc):
-                chain = "new org.basaltmc.server.values.Values.Writer(512)"
+                chain = "new Documents.Writer(512)"
                 for op in tree_ops(v.tree):
                     t = op[0]
                     chain += {"map": ".beginMap()", "list": ".beginList()", "end": ".end()"}.get(t, "")
@@ -777,16 +777,22 @@ class TJava(TL):
             return ["int[] o%d = new int[%d];" % (n, v.n)], "o%d" % n
         if kind == "f64out":
             return ["double[] f%d = new double[1];" % n], "f%d" % n
-        return [], "Worlds::done"
+        return [], "WorldTour::done"
 
     def later_fn(self, body):
-        return "    private static void later(int ctx) {\n        int w2 = 0;\n" + body + "        if (w2 < 0) {\n            org.basaltmc.server.log.Log.logDebug(\"unreachable\");\n        }\n    }\n\n"
+        return "    private static void later(int ctx) {\n        int w2 = 0;\n" + body + "        if (w2 < 0) {\n            Logger.logDebug(\"unreachable\");\n        }\n    }\n\n"
 
     def head(self):
         return '''package org.basaltmc.server.example.worlds;
 
-public final class Worlds {
-    private Worlds() {}
+import org.basaltmc.server.worlds.WorldManager;
+import org.basaltmc.server.values.Documents;
+import org.basaltmc.server.commands.Registry;
+import org.basaltmc.server.players.Directory;
+import org.basaltmc.server.log.Logger;
+
+public final class WorldTour {
+    private WorldTour() {}
 
     private static int kl(int length, int capacity) {
         return length > 0 && length <= capacity ? length : 0;
@@ -800,19 +806,19 @@ public final class Worlds {
 
     private static void done(int ctx) {
         byte[] out = new byte[16];
-        org.basaltmc.server.worlds.Worlds.worldValueResult(ctx, out);
+        WorldManager.worldValueResult(ctx, out);
     }
 
 //LATER
     private static void tour(int ctx) {
-        org.basaltmc.server.worlds.Worlds.chunkCoord(-17);
-        org.basaltmc.server.worlds.Worlds.blockDistance(0, 0, 0, 3, 4, 0);
+        WorldManager.chunkCoord(-17);
+        WorldManager.blockDistance(0, 0, 0, 3, 4, 0);
         int[] pos = {1, 2, 3};
-        org.basaltmc.server.worlds.Worlds.posOffset(pos, 1, 1, 1);
+        WorldManager.posOffset(pos, 1, 1, 1);
 '''
 
     def decls(self, keeps):
-        text = '        int w = 0, p = org.basaltmc.server.players.Players.playerByName("Steve"), w2 = 0, rq = 0, nz = 0;\n'
+        text = '        int w = 0, p = Directory.playerByName("Steve"), w2 = 0, rq = 0, nz = 0;\n'
         for k, s in keeps.items():
             text += "        byte[] %s = new byte[%d];\n        int %sn = 0;\n" % (k, s, k)
         return text
@@ -825,7 +831,7 @@ public final class Worlds {
         return '''    }
 
     public static void register() {
-        org.basaltmc.server.commands.Commands.command("worlds", "", Worlds::tour);
+        Registry.register("worlds", "", WorldTour::tour);
     }
 }
 '''
@@ -835,7 +841,7 @@ public final class Worlds {
 
 class TKotlin(TL):
     key = "kotlin"
-    path = "src/org/basaltmc/server/example/worlds/Worlds.kt"
+    path = "src/org/basaltmc/server/example/worlds/WorldTour.kt"
 
     def il(self, kind, v):
         return "%dL" % v if kind == "i64" else str(v)
@@ -901,7 +907,7 @@ class TKotlin(TL):
 
 import org.basaltmc.server.core.Ctx
 
-object Worlds {
+object WorldTour {
     private fun kl(length: Int, capacity: Int): Int = if (length > 0 && length <= capacity) length else 0
 
     private fun done(ctx: Ctx) {
@@ -942,7 +948,7 @@ object Worlds {
 
 class TCSharp(TL):
     key = "csharp"
-    path = "src/Worlds/Worlds.cs"
+    path = "src/Worlds/WorldTour.cs"
 
     def il(self, kind, v):
         return "%dL" % v if kind == "i64" else str(v)
@@ -951,7 +957,7 @@ class TCSharp(TL):
         return repr(v) + ("f" if kind == "f32" else "")
 
     def call(self, pub, name, parts):
-        return "SdkWorlds.%s(%s)" % (pascalcase(pub), ", ".join(parts))
+        return "WorldManager.%s(%s)" % (pascalcase(pub), ", ".join(parts))
 
     def arg(self, kind, name, extra, v, n, keeps):
         if kind == "str":
@@ -995,45 +1001,46 @@ class TCSharp(TL):
         return [], "Done"
 
     def later_fn(self, body):
-        return "    static void Later(int ctx)\n    {\n        int w2 = 0;\n" + body + "        if (w2 < 0)\n        {\n            SdkLog.LogDebug(\"unreachable\");\n        }\n    }\n\n"
+        return "    static void Later(int ctx)\n    {\n        int w2 = 0;\n" + body + "        if (w2 < 0)\n        {\n            Logger.LogDebug(\"unreachable\");\n        }\n    }\n\n"
 
     def head(self):
         return '''using Basalt.Server.Values;
-using SdkWorlds = Basalt.Server.Worlds.Worlds;
-using SdkPlayers = Basalt.Server.Players.Players;
-using SdkCommands = Basalt.Server.Commands.Commands;
-using SdkLog = Basalt.Server.Log.Logger;
+using System;
+using Basalt.Server.Worlds;
+using Basalt.Server.Players;
+using Basalt.Server.Commands;
+using Basalt.Server.Log;
 
 namespace Basalt.Server.Example.Worlds;
 
-public static class WorldsTour
+public static class WorldTour
 {
     static int Kl(int length, int capacity) => length > 0 && length <= capacity ? length : 0;
 
     static byte[] Cut(byte[] data, int length)
     {
         byte[] result = new byte[length];
-        System.Array.Copy(data, result, length);
+        Array.Copy(data, result, length);
         return result;
     }
 
     static void Done(int ctx)
     {
         byte[] output = new byte[16];
-        SdkWorlds.WorldValueResult(ctx, output);
+        WorldManager.WorldValueResult(ctx, output);
     }
 
 //LATER
     static void Tour(int ctx)
     {
-        SdkWorlds.ChunkCoord(-17);
-        SdkWorlds.BlockDistance(0, 0, 0, 3, 4, 0);
+        WorldManager.ChunkCoord(-17);
+        WorldManager.BlockDistance(0, 0, 0, 3, 4, 0);
         int[] pos = { 1, 2, 3 };
-        SdkWorlds.PosOffset(pos, 1, 1, 1);
+        WorldManager.PosOffset(pos, 1, 1, 1);
 '''
 
     def decls(self, keeps):
-        text = '        int w = 0, p = SdkPlayers.PlayerByName("Steve"), w2 = 0, rq = 0, nz = 0;\n'
+        text = '        int w = 0, p = Directory.PlayerByName("Steve"), w2 = 0, rq = 0, nz = 0;\n'
         for k, s in keeps.items():
             text += "        byte[] %s = new byte[%d];\n        int %sn = 0;\n" % (k, s, k)
         return text
@@ -1045,11 +1052,11 @@ public static class WorldsTour
     def tail(self, keeps):
         return '''        if (w + p + w2 + rq + nz < 0)
         {
-            SdkLog.LogDebug("unreachable");
+            Logger.LogDebug("unreachable");
         }
     }
 
-    public static void Register() => SdkCommands.Command("worlds", "", Tour);
+    public static void Register() => Registry.Register("worlds", "", Tour);
 }
 '''
 
@@ -1174,5 +1181,9 @@ def write(base, imports, plan, gen):
             continue
         out = dest / t.path
         out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(t.render(TOUR, plans))
+        text = t.render(TOUR, plans)
+        if t.key in ("java", "kotlin", "csharp"):
+            from source_imports import java_imports, kotlin_imports, csharp_imports
+            text = {"java": java_imports, "kotlin": kotlin_imports, "csharp": csharp_imports}[t.key](text)
+        out.write_text(text)
         print("wrote", out)

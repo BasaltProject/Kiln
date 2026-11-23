@@ -426,14 +426,15 @@ Outcome buildKotlin(const Context& context) {
             }
         }
     }
+    const std::string initImport = kotlinEntry == "init" ? "" : "import " + kotlinEntry + "\n";
     const std::string entryText =
-        "@file:OptIn(kotlin.wasm.ExperimentalWasmInterop::class)\nimport kotlin.wasm.WasmExport\n\n"
+        "@file:OptIn(kotlin.wasm.ExperimentalWasmInterop::class)\nimport kotlin.wasm.WasmExport\n"
+        "import org.basaltmc." +
+        std::string{context.proxy ? "proxy" : "server"} + ".core.dispatch\n" + initImport +
+        "\n"
         "@WasmExport(\"basalt_abi_version\")\nfun basaltAbiVersion(): Int = 1\n\n"
-        "@WasmExport(\"basalt_init\")\nfun basaltInit() = " +
-        kotlinEntry +
-        "()\n\n"
-        "@WasmExport(\"basalt_callback\")\nfun basaltCallback(token: Int, ctx: Int) = org.basaltmc." +
-        (context.proxy ? "proxy" : "server") + ".core.dispatch(token, ctx)\n";
+        "@WasmExport(\"basalt_init\")\nfun basaltInit() = init()\n\n"
+        "@WasmExport(\"basalt_callback\")\nfun basaltCallback(token: Int, ctx: Int) = dispatch(token, ctx)\n";
     const fs::path entry = context.work / "Entry.kt";
     if (!writeIfChanged(entry, entryText)) {
         return std::unexpected("cannot write " + entry.string());
@@ -524,16 +525,17 @@ Outcome buildCSharp(const Context& context) {
         }
     }
     const fs::path entry = context.work / "Entry.cs";
+    const std::string pluginImport =
+        pluginClass == "Plugin" ? "" : "using " + pluginClass.substr(0, pluginClass.rfind('.')) + ";\n";
     if (!writeIfChanged(
-            entry, "using System.Runtime.InteropServices;\npublic static class BasaltEntry {\n"
-                   "[UnmanagedCallersOnly(EntryPoint = \"basalt_abi_version\")] public static int Version() => 1;\n"
-                   "[UnmanagedCallersOnly(EntryPoint = \"basalt_init\")] public static void Init() => " +
-                       pluginClass +
-                       ".Init();\n"
-                       "[UnmanagedCallersOnly(EntryPoint = \"basalt_callback\")] public static void Callback(int "
-                       "token, int ctx) => Basalt." +
-                       std::string{context.proxy ? "Proxy" : "Server"} +
-                       ".Internal.Native.Dispatch(token, ctx);\n}\n")) {
+            entry,
+            "using System.Runtime.InteropServices;\nusing Basalt." + std::string{context.proxy ? "Proxy" : "Server"} +
+                ".Internal;\n" + pluginImport +
+                "public static class BasaltEntry {\n"
+                "[UnmanagedCallersOnly(EntryPoint = \"basalt_abi_version\")] public static int Version() => 1;\n"
+                "[UnmanagedCallersOnly(EntryPoint = \"basalt_init\")] public static void Init() => Plugin.Init();\n"
+                "[UnmanagedCallersOnly(EntryPoint = \"basalt_callback\")] public static void Callback(int token, int "
+                "ctx) => Native.Dispatch(token, ctx);\n}\n")) {
         return std::unexpected("cannot write " + entry.string());
     }
     const fs::path packages = *dotnet / "nuget";
@@ -641,11 +643,11 @@ Outcome buildJava(const Context& context) {
     }
     const fs::path entry = context.work / "gen" / "BasaltEntry.java";
     const fs::path services = context.work / "services" / "META-INF" / "services" / "org.teavm.vm.spi.TeaVMPlugin";
-    if (!writeIfChanged(entry, "public final class BasaltEntry {\n    public static void main(String[] args) {\n"
-                               "        " +
-                                   entryClass + ".init();\n        org.basaltmc." +
-                                   (context.proxy ? "proxy" : "server") +
-                                   ".internal.Callbacks.install();\n    }\n}\n") ||
+    const std::string mainImport = entryClass == "Main" ? "" : "import " + entryClass + ";\n";
+    if (!writeIfChanged(entry, mainImport + "import org.basaltmc." + std::string{context.proxy ? "proxy" : "server"} +
+                                   ".internal.Callbacks;\n"
+                                   "public final class BasaltEntry {\n    public static void main(String[] args) {\n"
+                                   "        Main.init();\n        Callbacks.install();\n    }\n}\n") ||
         !writeIfChanged(services, "org.teavm.platform.plugin.PlatformPlugin\norg.teavm.jso.impl.JSOPlugin\n"
                                   "org.teavm.metaprogramming.impl.MetaprogrammingPlugin\n"
                                   "org.teavm.classlib.impl.JCLPlugin\n")) {

@@ -1,6 +1,5 @@
 @file:OptIn(kotlin.wasm.unsafe.UnsafeWasmMemoryApi::class)
 
-// Linear memory and callback plumbing shared by every area package.
 package org.basaltmc.proxy.internal
 
 import kotlin.wasm.unsafe.MemoryAllocator
@@ -8,6 +7,9 @@ import kotlin.wasm.unsafe.Pointer
 import kotlin.wasm.unsafe.withScopedMemoryAllocator
 import org.basaltmc.proxy.core.Args
 import org.basaltmc.proxy.core.Handler
+
+// Linear memory and callback plumbing shared by every area package.
+
 
 internal val handlers = ArrayList<Handler>()
 

@@ -108,8 +108,10 @@ static inline int bs_proxy_cookie_set(bs_player player, const char *key, const v
 
 /* Asks the client for a cookie; the handler reads the answer with bs_proxy_cookie_result. Returns the request. */
 static inline int bs_proxy_cookie_request(bs_player player, const char *key, bs_handler handler) {
-    const int token = bs_token_for(handler);
-    return token < 0 ? BASALT_ERR_INVALID : basalt_proxy_cookie_request(player, key, bs_pi_length(key), token);
+    const int token = bs_once_token(handler);
+    return token < 0 ? BASALT_ERR_INVALID
+                     : bs_once_bind(token, BS_ONCE_REQUEST,
+                                    basalt_proxy_cookie_request(player, key, bs_pi_length(key), token));
 }
 
 /* Copies the cookie of a completion into `out` and returns its length (written only when it fits), ABSENT when the
@@ -140,7 +142,7 @@ static inline int bs_proxy_cookie_result(bs_ctx ctx, void *out, int cap) {
     return length;
 }
 
-static inline int bs_proxy_request_cancel(int request) { return basalt_request_cancel(request); }
+static inline int bs_proxy_request_cancel(int request) { return bs_request_cancel(request); }
 
 static inline int bs_proxy_player_transfer(bs_player player, const char *host, int port) {
     return basalt_proxy_player_transfer(player, host, bs_pi_length(host), port);

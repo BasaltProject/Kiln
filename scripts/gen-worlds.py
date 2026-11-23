@@ -135,10 +135,14 @@ class C(Lang):
             elif kind == "handler":
                 params.append("bs_handler done"); raw.append("token")
         pre = ""
+        call = "basalt_%s(%s)" % (imp.name, ", ".join(raw))
         if any(k == "handler" for k, _, _ in items):
-            pre = "    const int32_t token = bs_token_for(done);\n    if (token <= 0) {\n        return BASALT_ERR_INVALID;\n    }\n"
-        return "static inline int32_t %s(%s) {\n%s    return basalt_%s(%s);\n}\n" % (
-            self.fname(public_name(imp, owner)), ", ".join(params), pre, imp.name, ", ".join(raw))
+            pre = "    const int32_t token = bs_once_token(done);\n    if (token <= 0) {\n        return BASALT_ERR_INVALID;\n    }\n"
+            call = "bs_once_bind(token, BS_ONCE_REQUEST, %s)" % call
+        elif imp.name == "request_cancel":
+            call = "bs_request_cancel(%s)" % ", ".join(raw)
+        return "static inline int32_t %s(%s) {\n%s    return %s;\n}\n" % (
+            self.fname(public_name(imp, owner)), ", ".join(params), pre, call)
 
     def head(self):
         return ("/* " + HEADER + " */\n#ifndef BASALT_SERVER_WORLDS_H\n#define BASALT_SERVER_WORLDS_H\n\n"
@@ -247,6 +251,7 @@ class Rust(Lang):
 
     def fn(self, imp, owner, items):
         params, raw = [], []
+        items = [(kind, re.sub(r"(?<!^)([A-Z])", r"_\1", name).lower(), extra) for kind, name, extra in items]
         arr = first_array(items)
         rawns = "raw" if owner == "worlds" else "core"
         for kind, name, extra in items:
@@ -334,7 +339,7 @@ class Go(Lang):
 
 class Java(Lang):
     key = "java"
-    wrapper = "sdk/java/server/org/basaltmc/server/worlds/Worlds.java"
+    wrapper = "sdk/java/server/org/basaltmc/server/worlds/WorldManager.java"
     TY = {"i32": "int", "i64": "long", "f32": "float", "f64": "double"}
 
     def fn(self, imp, owner, items):
@@ -435,7 +440,7 @@ class Kotlin(Lang):
 
 class CSharp(Lang):
     key = "csharp"
-    wrapper = "sdk/csharp/server/Worlds/Worlds.cs"
+    wrapper = "sdk/csharp/server/Worlds/WorldManager.cs"
     TY = {"i32": "int", "i64": "long", "f32": "float", "f64": "double"}
 
     def fn(self, imp, owner, items):
@@ -568,6 +573,15 @@ def main():
         if lang.key == "java":
             from sdk_layout import java_wrapper
             text = java_wrapper(text, "worlds")
+        if lang.key == "java":
+            from source_imports import java_imports
+            text = java_imports(text.replace("class Worlds", "class WorldManager").replace("private Worlds()", "private WorldManager()"))
+        elif lang.key == "kotlin":
+            from source_imports import kotlin_imports
+            text = kotlin_imports(text)
+        elif lang.key == "csharp":
+            from source_imports import csharp_imports
+            text = csharp_imports(text.replace("class Worlds", "class WorldManager"))
         text = "\n".join(line.rstrip() for line in text.splitlines()).rstrip() + "\n"
         if args.check:
             if not path.exists() or path.read_text() != text:

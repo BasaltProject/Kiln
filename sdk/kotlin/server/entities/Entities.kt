@@ -1,14 +1,16 @@
 @file:OptIn(kotlin.wasm.unsafe.UnsafeWasmMemoryApi::class, kotlin.wasm.ExperimentalWasmInterop::class)
 
-// Entities area (abi/areas/entities.h): entity handles, spawning, motion, properties by name and goal answers.
-// Options, queries, items and arguments are encoded values; an `out` buffer receives an encoded value (or NBT bytes for snapshot).
 package org.basaltmc.server.entities
+
+import kotlin.wasm.unsafe.withScopedMemoryAllocator
 import org.basaltmc.server.core.*
 import org.basaltmc.server.internal.*
 import org.basaltmc.server.values.*
 
+// Entities area (abi/areas/entities.h): entity handles, spawning, motion, properties by name and goal answers.
+// Options, queries, items and arguments are encoded values; an `out` buffer receives an encoded value (or NBT bytes for snapshot).
 
-import kotlin.wasm.unsafe.withScopedMemoryAllocator
+
 
 fun entityOfPlayer(who: Int): Int = withScopedMemoryAllocator { a ->
     val status = rawEntityOfPlayer(who)
